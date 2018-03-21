@@ -1,6 +1,7 @@
 import ly.document
 import ly.music
 from sys import argv
+from fractions import Fraction
 
 header_fields = { 
     'title': 'T',
@@ -13,8 +14,58 @@ header_fields = {
 # def tempo:
 #   print("Handling tempo")
 
+flat = Fraction(-1,2)
+natural = Fraction(0)
+sharp = Fraction(1,2)
+
+circle = ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#']
+modes = { 'major': 0,
+          'mixolydian': -1,
+          'dorian': -2,
+          'minor': -3 }
+
+
+abc_key_alters = { flat: lambda x: x + "b",
+    natural: lambda x: x,
+    sharp: lambda x: x + "#" }
+
+abc_pitches = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+
+abc_natural_alters = { Fraction(-1,2): "_",
+               Fraction(0): "",
+               Fraction(1,2): "^"}
+
+abc_sharp_alters = { Fraction(-1,2): "_",
+               Fraction(0): "=",
+               Fraction(1,2): ""}
+
+abc_flat_alters = { Fraction(-1,2): "",
+               Fraction(0): "=",
+               Fraction(1,2): "^"}
+
+abc_octaves = [ lambda x: x.upper() + ",",
+                lambda x: x.upper(),
+                lambda x: x.lower(),
+                lambda x: x.lower() + "'",
+                lambda x: x.lower() + "''",
+                lambda x: x.lower() + "'''" ]
+
+def abc_pitch(p):
+  return accidental(p) + abc_pitches[p.note]
+
+def accidental(p):
+  # determine normal disposition of note in the mode
+  normal = 0
+  # is this one altered?
+  if normal == 0:
+    return abc_natural_alters[p.alter]
+  elif normal == Fraction(-1,2):
+    return abc_flat_alters[p.alter]
+  elif normal == Fraction(1,2):
+    return abc_sharp_alters[p.alter]
+
 def pitch_map(p):
-  return p.output().capitalize()
+  return abc_octaves[p.octave](abc_pitch(p))
 
 def duration_map(d):
   eighths = d*8
@@ -24,10 +75,10 @@ def duration_map(d):
     return ""
 
 def ly_globals(g):
-  for k in g.find(ly.music.items.KeySignature):
-    print(f"K: {pitch_map(k.pitch())}{k.mode()}")
   for t in g.find(ly.music.items.TimeSignature):
-    print(f"T: {t.numerator()}/{t.fraction().denominator}")
+    print(f"M: {t.numerator()}/{t.fraction().denominator}")
+  for k in g.find(ly.music.items.KeySignature):
+    print(f"K: {abc_key_alters[k.pitch().alter](abc_pitches[k.pitch().note]).upper()}{k.mode()}")
 
 # def chords:
 #   print("Handling chords")
@@ -35,11 +86,17 @@ def ly_globals(g):
 def music(music_assign):
   time_so_far = 0
   for m in music_assign.find(ly.music.items.MusicList,depth=2):
+    last_pitch = None
     for n in music_assign.find(ly.music.items.Note):
       # assume we're in 6/8
 
+      # make the pitch absolute
+      pitch = n.pitch
+      if last_pitch:
+        pitch.makeAbsolute(last_pitch)
+
       if(n.length() > 0):
-        print(f"{pitch_map(n.pitch)}{duration_map(n.length())}", end='')
+        print(f"{pitch_map(pitch)}{duration_map(n.length())}", end='')
         time_so_far += n.length()
 #        print(f"time so far: {time_so_far}")
         if time_so_far*8 % 6 == 0: # barline every 6 beats
@@ -48,6 +105,9 @@ def music(music_assign):
             print()
         elif time_so_far*8 % 3 == 0: # split beaming in the middle
           print(" ",end='')
+      last_pitch = pitch
+
+        
 
   print("")
   print("")
