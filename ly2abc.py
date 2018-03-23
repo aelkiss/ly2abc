@@ -3,6 +3,20 @@ import ly.music
 from sys import argv
 from fractions import Fraction
 
+# key signature --> find in global
+# time signature --> find in global
+# find shortest note --> L
+# in ppMusicOne
+#    track repeats - open repeat / close repeat
+#    MarkupWord Drone -> note
+#    UserCommand ppMark -> P: [track ppMarks so far]
+#        (or rehearsal mark for release version)
+    
+
+class NoteConverter:
+  def __init__(self,lilypond_note):
+    self.ly_note = lilypond_note
+
 header_fields = { 
     'title': 'T',
     'subtitle': 'T',
@@ -18,11 +32,26 @@ flat = Fraction(-1,2)
 natural = Fraction(0)
 sharp = Fraction(1,2)
 
+key_sharps = None
+
 circle = ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#']
 modes = { 'major': 0,
           'mixolydian': -1,
           'dorian': -2,
           'minor': -3 }
+
+def sharps(note,mode):
+  return circle.index(note) - 7 + modes[mode]
+
+def accidental(note,key_sharps):
+  sharp_order = circle.index(note) - 5
+  flat_order = sharp_order - 8
+  if(key_sharps > 0 and sharp_order <= key_sharps):
+    return Fraction(1/2)
+  elif(key_sharps < 0 and flat_order >= key_sharps):
+    return Fraction(-1/2)
+  else:
+    return 0
 
 
 abc_key_alters = { flat: lambda x: x + "b",
@@ -51,11 +80,11 @@ abc_octaves = [ lambda x: x.upper() + ",",
                 lambda x: x.lower() + "'''" ]
 
 def abc_pitch(p):
-  return accidental(p) + abc_pitches[p.note]
+  return abc_accidental(p) + abc_pitches[p.note]
 
-def accidental(p):
+def abc_accidental(p):
   # determine normal disposition of note in the mode
-  normal = 0
+  normal = accidental(abc_pitches[p.note],key_sharps)
   # is this one altered?
   if normal == 0:
     return abc_natural_alters[p.alter]
@@ -78,7 +107,11 @@ def ly_globals(g):
   for t in g.find(ly.music.items.TimeSignature):
     print(f"M: {t.numerator()}/{t.fraction().denominator}")
   for k in g.find(ly.music.items.KeySignature):
-    print(f"K: {abc_key_alters[k.pitch().alter](abc_pitches[k.pitch().note]).upper()}{k.mode()}")
+    global key_sharps
+    note = abc_key_alters[k.pitch().alter](abc_pitches[k.pitch().note]).upper()
+    mode = k.mode()
+    key_sharps = sharps(note,mode)
+    print(f"K: {note}{mode}")
 
 # def chords:
 #   print("Handling chords")
@@ -121,25 +154,16 @@ dispatch = {
     'ppMusicOne': music
 }
 
-f=open(argv[1],"r")
-d=ly.document.Document(f.read())
-m=ly.music.document(d)
 
-for h in m.find(ly.music.items.Header):
-  for a in h.find(ly.music.items.Assignment):
-    abc_field = header_fields[a.name()]
-    print(f"{abc_field}: {a.value().plaintext()}")
+if __name__ == "__main__":
+  f=open(argv[1],"r")
+  d=ly.document.Document(f.read())
+  m=ly.music.document(d)
 
-for a in m.find(ly.music.items.Assignment,depth=1):
-  dispatch.get(a.name(), lambda x: None)(a)
+  for h in m.find(ly.music.items.Header):
+    for a in h.find(ly.music.items.Assignment):
+      abc_field = header_fields[a.name()]
+      print(f"{abc_field}: {a.value().plaintext()}")
 
-# key signature --> find in global
-# time signature --> find in global
-# find shortest note --> L
-# in ppMusicOne
-#    track repeats - open repeat / close repeat
-#    MarkupWord Drone -> note
-#    UserCommand ppMark -> P: [track ppMarks so far]
-#        (or rehearsal mark for release version)
-    
-
+  for a in m.find(ly.music.items.Assignment,depth=1):
+    dispatch.get(a.name(), lambda x: None)(a)
