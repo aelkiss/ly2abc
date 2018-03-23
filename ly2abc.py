@@ -14,8 +14,36 @@ from fractions import Fraction
     
 
 class NoteConverter:
-  def __init__(self,lilypond_note):
-    self.ly_note = lilypond_note
+  octaves = [ lambda x: x.upper() + ",",
+              lambda x: x.upper(),
+              lambda x: x.lower(),
+              lambda x: x.lower() + "'",
+              lambda x: x.lower() + "''",
+              lambda x: x.lower() + "'''" ]
+
+  notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+
+  natural_alters = { Fraction(-1,2): "_",
+                 Fraction(0): "",
+                 Fraction(1,2): "^"}
+
+
+  def __init__(self,pitch,length):
+    self.pitch = pitch
+    self.length = length
+
+  def to_abc(self): 
+    return self.octave()(self.note())
+
+  def octave(self):
+    return NoteConverter.octaves[self.pitch.octave]
+
+  def note(self):
+    return self.accidental() + NoteConverter.notes[self.pitch.note]
+
+  def accidental(self):
+    return NoteConverter.natural_alters[self.pitch.alter]
+
 
 header_fields = { 
     'title': 'T',
@@ -60,13 +88,13 @@ abc_key_alters = { flat: lambda x: x + "b",
 
 abc_pitches = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
-abc_natural_alters = { Fraction(-1,2): "_",
-               Fraction(0): "",
-               Fraction(1,2): "^"}
-
 abc_sharp_alters = { Fraction(-1,2): "_",
                Fraction(0): "=",
                Fraction(1,2): ""}
+
+abc_natural_alters = { Fraction(-1,2): "_",
+                 Fraction(0): "",
+                 Fraction(1,2): "^"}
 
 abc_flat_alters = { Fraction(-1,2): "",
                Fraction(0): "=",
