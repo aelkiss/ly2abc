@@ -2,6 +2,7 @@ import ly.document
 import ly.music
 from sys import argv
 from fractions import Fraction
+from math import log2
 
 # key signature --> find in global
 # time signature --> find in global
@@ -33,7 +34,7 @@ class NoteConverter:
     self.length = length
 
   def to_abc(self): 
-    return self.octave()(self.note())
+    return self.octave()(self.note()) + self.duration()
 
   def octave(self):
     return NoteConverter.octaves[self.pitch.octave]
@@ -44,6 +45,14 @@ class NoteConverter:
   def accidental(self):
     return NoteConverter.natural_alters[self.pitch.alter]
 
+  def duration(self):
+    eighths = self.length*8
+    if eighths > 1:
+      return str(eighths)
+    elif eighths == 1:
+      return ""
+    elif eighths.numerator == 1:
+      return "/" * int(log2(eighths.denominator))
 
 header_fields = { 
     'title': 'T',
