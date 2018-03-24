@@ -92,6 +92,16 @@ with description('ly2abc.Note') as self:
     with it('converts a F# above middle C to ABC with an accidental'):
       self.expect_abc_pitch(Pitch.fs,"^F")
 
+    with context('no pitch'):
+      def expect_abc_rest(self,duration,abc):
+        self.expect_abc_note(None,duration,self.context(),abc)
+
+      with it('converts an 8th rest to ABC'):
+        self.expect_abc_rest(Fraction(1/8),"z")
+
+      with it('converts a quarter rest to ABC'):
+        self.expect_abc_rest(Fraction(1/4),"z2")
+
     with context('middle C'):
       def expect_abc_note_length(self,duration,abc):
         self.expect_abc_note(Pitch.c,duration,self.context(),abc)

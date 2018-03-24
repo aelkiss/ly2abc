@@ -117,9 +117,13 @@ class Note:
     self.context = context
 
   def to_abc(self): 
-    return self.octave()(self.note()) + self.duration()
+    return self.abc_pitch() + self.duration()
 
   # private
+
+  def abc_pitch(self):
+    if self.pitch: return self.octave()(self.note()) 
+    else: return 'z'
 
   def octave(self):
     return Note.octaves[self.pitch.octave]
@@ -176,7 +180,6 @@ def ly_globals(g):
     numerator = t.numerator()
     denominator = t.fraction().denominator
     bar_manager = BarManager(numerator,denominator)
-    print("%s %s %s",t,numerator,denominator)
     print("M: %s" % bar_manager.time_signature())
     if Fraction(numerator,denominator) < Fraction(3/4):
       unit_length = Fraction(1/16)
@@ -194,30 +197,37 @@ def ly_globals(g):
 # def chords:
 #   print("Handling chords")
 
-def music(music_assign):
+def print_note(pitch,duration):
   global note_context, bar_manager
 
+  print(Note(pitch,duration,note_context).to_abc(), end='')
+#        print(f"time so far: {time_so_far}")
+  if bar_manager.bar_line():
+    print(" | ",end='')
+    if bar_manager.line_break():
+      print()
+  elif bar_manager.beam_break():
+    print(" ",end='')
+
+
+def music(music_assign):
   for m in music_assign.find(ly.music.items.MusicList,depth=2):
     last_pitch = None
-    for n in music_assign.find(ly.music.items.Note):
-      # make the pitch absolute
-      pitch = n.pitch
-      if last_pitch:
-        pitch.makeAbsolute(last_pitch)
-
+    for n in music_assign.find((ly.music.items.Note,ly.music.items.Rest)):
       bar_manager.pass_time(n.length())
 
-      if(n.length() > 0):
-        print(Note(pitch,n.length(),note_context).to_abc(), end='')
-#        print(f"time so far: {time_so_far}")
-        if bar_manager.bar_line(): # barline every 6 beats
-          print(" | ",end='')
-          if bar_manager.line_break(): # newline every 6 measures / 36 beats
-            print()
-        elif bar_manager.beam_break(): # split beaming in the middle
-          print(" ",end='')
+      pitch = None
+      duration = n.length()
 
-      last_pitch = pitch
+      # make the pitch absolute
+      if hasattr(n,'pitch'):
+        pitch = n.pitch
+        if last_pitch: pitch.makeAbsolute(last_pitch)
+
+      if(duration > 0):
+        print_note(pitch,duration)
+
+      if hasattr(n,'pitch'): last_pitch = pitch
 
   print("")
   print("")

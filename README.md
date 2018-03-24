@@ -8,21 +8,22 @@ Usage:
 This is heavily a work in progress. It does not yet handle conversion from
 LilyPond for the following features of the ABC specification:
 
-* Rests
 * Repeats of any kind
 * Ties or slurs
 * Section markers
 * Key or meter changes
 * Chords
 * Tuplets
-* Clefs other than treble clef
+* Annotations
+** (for fakebook, should handle the idiosyncratic multiple-repeat markup)
 * Modes besides major, minor, dorian, mixolydian
+* Double accidentals
+* Decorations
+* Grace notes
+* Clefs other than treble clef
 * Explicit beaming
 * Explicit line breaks
-* Double accidentals
-* Grace notes
-* Decorations
-* Annotations
+* Multi-measure rests
 * Modified or explicit key signatures
 
 No support is planned for:
