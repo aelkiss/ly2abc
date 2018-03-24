@@ -16,9 +16,71 @@ flat = Fraction(-1,2)
 natural = 0
 sharp = Fraction(1,2)
 
+class BarManager:
+  """ provides support for telling when to break beaming, bars, and lines """
+  # break beams after this number of beats in the numerator
+  beamers = { 
+      2:  1,
+      3:  3,
+      4:  2,
+      5:  1,
+      6:  3,
+      7:  1,
+      8:  2,
+      9:  3
+  }
+      
+  def __init__(self,numerator,denominator):
+    self.elapsed_time = 0
+    self.denominator = denominator
+    self.numerator = numerator
+
+  def pass_time(self,duration):
+    self.elapsed_time += duration
+
+  def line_break(self):
+    return self.measures() % 6 == 0
+
+  def beam_break(self):
+    return self.beats() % BarManager.beamers[self.numerator] == 0
+
+  def bar_line(self):
+    return self.beats() % self.numerator == 0
+
+  def beats(self):
+    return self.elapsed_time * self.denominator
+
+  def measures(self):
+    return self.elapsed_time * self.denominator / self.numerator
+
+  def time_signature(self):
+    return "%s/%s" % (self.numerator,self.denominator)
+
 class Key:
+  alters = { flat: "b",
+      natural: "",
+      sharp: "#" }
+
+  modes = { 'major': 0,
+            'mixolydian': -1,
+            'dorian': -2,
+            'minor': -3 }
+
   def __init__(self,pitch,mode):
-    pass
+    self.pitch = pitch
+    self.mode = mode
+
+  def sharps(self):
+    """ Maps the note to the number of sharps in the key.
+     0 (C) -> 0; 1 (D) -> 2; 2 (E) -> 4; 3 (F) -> -1; 4 (G) -> 1; 5 (A) -> 3; 6 (B) -> 5
+     The +1 / -1 in the calculation is to avoid a special case for F needing to
+     be -1 rather than 6 (which is F#) Every half step alteration adds 7 sharps
+     (e.g. C# has 7 sharps; Bb has -2 sharps = 2 flats)
+    """
+    return (self.pitch.note * 2 + 1) % 7 - 1 + 14 * self.pitch.alter + Key.modes[self.mode]
+
+  def to_abc(self):
+    return "%s%s %s" % (Note.notes[self.pitch.note],Key.alters[self.pitch.alter],self.mode)
 
 class NoteContext:
   def __init__(self,sharps=0,unit_length=Fraction(1/8)):
@@ -87,14 +149,13 @@ class Note:
     else:
       return 0
 
-
   def duration(self):
-    eighths = self.length*8
+    units = self.length / self.context.unit_length
     prefix = ""
-    if eighths.numerator > 1:
-      prefix = str(eighths.numerator)
+    if units.numerator > 1:
+      prefix = str(units.numerator)
 
-    return prefix + ("/" * int(log2(eighths.denominator)))
+    return prefix + ("/" * int(log2(units.denominator)))
 
 header_fields = { 
     'title': 'T',
@@ -107,68 +168,56 @@ header_fields = {
 # def tempo:
 #   print("Handling tempo")
 
-key_sharps = None
-
-circle = ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#']
-modes = { 'major': 0,
-          'mixolydian': -1,
-          'dorian': -2,
-          'minor': -3 }
-
-def sharps(note,mode):
-  return circle.index(note) - 7 + modes[mode]
-
-abc_key_alters = { flat: lambda x: x + "b",
-    natural: lambda x: x,
-    sharp: lambda x: x + "#" }
-
-abc_pitches = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
-
 def ly_globals(g):
   unit_length = Fraction(1/8)
 
   for t in g.find(ly.music.items.TimeSignature):
-    print(f"M: {t.numerator()}/{t.fraction().denominator}")
-    if t.fraction() < 0.75:
+    global bar_manager
+    numerator = t.numerator()
+    denominator = t.fraction().denominator
+    bar_manager = BarManager(numerator,denominator)
+    print("%s %s %s",t,numerator,denominator)
+    print("M: %s" % bar_manager.time_signature())
+    if Fraction(numerator,denominator) < Fraction(3/4):
       unit_length = Fraction(1/16)
+    elif denominator <= 2:
+      unit_length = Fraction(1/4)
+
+    print("L: %s" % unit_length)
 
   for k in g.find(ly.music.items.KeySignature):
     global note_context
-    note = abc_key_alters[k.pitch().alter](abc_pitches[k.pitch().note]).upper()
-    mode = k.mode()
-    note_context = NoteContext(sharps(note,mode),unit_length)
-    print(f"K: {note}{mode}")
+    key = Key(k.pitch(),k.mode())
+    note_context = NoteContext(key.sharps(),unit_length)
+    print("K: %s" % (key.to_abc()))
 
 # def chords:
 #   print("Handling chords")
 
 def music(music_assign):
-  global note_context
-  time_so_far = 0
+  global note_context, bar_manager
 
   for m in music_assign.find(ly.music.items.MusicList,depth=2):
     last_pitch = None
     for n in music_assign.find(ly.music.items.Note):
-      # assume we're in 6/8
-
       # make the pitch absolute
       pitch = n.pitch
       if last_pitch:
         pitch.makeAbsolute(last_pitch)
 
+      bar_manager.pass_time(n.length())
+
       if(n.length() > 0):
         print(Note(pitch,n.length(),note_context).to_abc(), end='')
-        time_so_far += n.length()
 #        print(f"time so far: {time_so_far}")
-        if time_so_far*8 % 6 == 0: # barline every 6 beats
+        if bar_manager.bar_line(): # barline every 6 beats
           print(" | ",end='')
-          if time_so_far*8 % 36 == 0: # newline every 6 measures / 36 beats
+          if bar_manager.line_break(): # newline every 6 measures / 36 beats
             print()
-        elif time_so_far*8 % 3 == 0: # split beaming in the middle
+        elif bar_manager.beam_break(): # split beaming in the middle
           print(" ",end='')
-      last_pitch = pitch
 
-        
+      last_pitch = pitch
 
   print("")
   print("")

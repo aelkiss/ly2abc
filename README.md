@@ -9,10 +9,10 @@ This is heavily a work in progress. It does not yet handle conversion from
 LilyPond for the following features of the ABC specification:
 
 * Rests
-* Meters other than 6/8
 * Repeats of any kind
-* Key or meter changes
+* Ties or slurs
 * Section markers
+* Key or meter changes
 * Chords
 * Tuplets
 * Clefs other than treble clef
@@ -35,3 +35,8 @@ On the LilyPond side, it does not support:
 * Music outside a `ppMusicOne` assign
 * Key signatures or time signatures outside a `global` assign
 * Transposed music sections
+
+To make overrideable:
+
+* Unit length
+* Beaming strategy
