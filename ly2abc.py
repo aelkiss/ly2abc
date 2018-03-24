@@ -16,6 +16,10 @@ flat = Fraction(-1,2)
 natural = 0
 sharp = Fraction(1,2)
 
+class Key:
+  def __init__(self,pitch,mode):
+    pass
+
 class NoteContext:
   def __init__(self,sharps=0,unit_length=Fraction(1/8)):
     self.sharps = sharps
@@ -67,12 +71,9 @@ class Note:
     alter = self.pitch.alter
 
     # is this one altered?
-    if normal == natural:
-      return self.natural_alters[alter]
-    elif normal == flat:
-      return self.flat_alters[alter]
-    elif normal == sharp:
-      return self.sharp_alters[alter]
+    if normal == natural: return self.natural_alters[alter]
+    elif normal == flat: return self.flat_alters[alter]
+    elif normal == sharp: return self.sharp_alters[alter]
 
   def key_alter(self):
     sharp_order = self.circle.index(self.pitch.note) + 1

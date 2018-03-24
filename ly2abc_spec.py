@@ -4,11 +4,26 @@ from fractions import Fraction
 
 from ly2abc import *
 
-class FakePitch:
+
+class Pitch:
   def __init__(self,note,alter,octave):
     self.note = note
     self.alter = alter
     self.octave = octave
+
+Pitch.low_c = Pitch(0,0,0)
+Pitch.c = Pitch(0,0,1)
+Pitch.high_c = Pitch(0,0,2)
+Pitch.d = Pitch(1,0,1)
+Pitch.ef = Pitch(2,Fraction(-1/2),1)
+Pitch.e = Pitch(2,0,1)
+Pitch.f = Pitch(3,0,1)
+Pitch.fs = Pitch(3,Fraction(1/2),1)
+Pitch.g = Pitch(4,0,1)
+Pitch.a = Pitch(5,0,1)
+Pitch.b = Pitch(6,0,1)
+Pitch.bf = Pitch(6,Fraction(-1,2),1)
+
 
 with description('ly2abc.NoteContext') as self:
   with it('can be constructed with number of sharps and a unit length'):
@@ -39,23 +54,23 @@ with description('ly2abc.Note') as self:
       self.expect_abc_note(pitch,self.context().unit_length,self.context(),abc)
 
     with it('converts a high C 8th note to ABC with no accidental'):
-      self.expect_abc_pitch(FakePitch(0,0,2),"c")
+      self.expect_abc_pitch(Pitch.high_c,"c")
 
     with it('converts a low C 8th note to ABC with no accidental'):
-      self.expect_abc_pitch(FakePitch(0,0,0),"C,")
+      self.expect_abc_pitch(Pitch.low_c,"C,")
 
     with it('converts a D above middle C to ABC with no accidental'):
-      self.expect_abc_pitch(FakePitch(1,0,1), "D")
+      self.expect_abc_pitch(Pitch.d, "D")
 
-    with it('converts a Bb below middle C to ABC with an accidental'):
-      self.expect_abc_pitch(FakePitch(6,Fraction(-1,2),1),"_B")
+    with it('converts a Bb above middle C to ABC with an accidental'):
+      self.expect_abc_pitch(Pitch.bf,"_B")
 
     with it('converts a F# above middle C to ABC with an accidental'):
-      self.expect_abc_pitch(FakePitch(3,Fraction(1,2),1),"^F")
+      self.expect_abc_pitch(Pitch.fs,"^F")
 
     with context('middle C'):
       def expect_abc_note_length(self,duration,abc):
-        self.expect_abc_note(FakePitch(0,0,1),duration,self.context(),abc)
+        self.expect_abc_note(Pitch.c,duration,self.context(),abc)
 
       with it('converts an 8th note to ABC'):
         self.expect_abc_note_length(Fraction(1/8),"C")
@@ -89,59 +104,69 @@ with description('ly2abc.Note') as self:
       self.expect_abc_note(pitch,self.context().unit_length,self.context(),abc)
 
     with it('does not put an accidental before F#'):
-      self.expect_abc_pitch(FakePitch(3,Fraction(1/2),1),"F")
+      self.expect_abc_pitch(Pitch.fs,"F")
 
     with it('puts an natural before F'):
-      self.expect_abc_pitch(FakePitch(3,0,1),"=F")
+      self.expect_abc_pitch(Pitch.f,"=F")
 
     with it('does not put an accidental before C'):
-      self.expect_abc_pitch(FakePitch(0,0,1),"C")
+      self.expect_abc_pitch(Pitch.c,"C")
 
   with description('key_alter') as self:
 
-    def expect_alter(self,note_num,sharps,alter):
-      expect(Note(FakePitch(note_num,0,1),1,NoteContext(sharps=sharps)).key_alter()).to(equal(alter))
+    def expect_alter(self,note,sharps,alter):
+      expect(Note(getattr(Pitch,note),1,NoteContext(sharps=sharps)).key_alter()).to(equal(alter))
 
-    # note_num 0 = C; 6 = B
     with it("has no accidentals in C major"):
-      for note_num in [0,1,2,3,4,5,6]:
-        self.expect_alter(note_num,sharps('C','major'),0)
+      for note in ["c","d","e","f","g","a","b"]:
+        self.expect_alter(note,sharps('C','major'),0)
 
     with it("has an F sharp in G major"):
-      for note_num in [3]:
-        self.expect_alter(note_num,sharps('G','major'),Fraction(1/2))
-      for note_num in [0,1,2,4,5,6]:
-        self.expect_alter(note_num,sharps('G','major'),0)
+      for note in "f":
+        self.expect_alter(note,sharps('G','major'),Fraction(1/2))
+      for note in ["c","d","e","g","a","b"]:
+        self.expect_alter(note,sharps('G','major'),0)
 
     with it("has an F,C, and G sharp in A major"):
-      for note_num in [3,0,4]:
-        self.expect_alter(note_num,sharps('A','major'),Fraction(1/2))
-      for note_num in [1,2,5,6]:
-        self.expect_alter(note_num,sharps('A','major'),0)
+      for note in ["f","c","g"]:
+        self.expect_alter(note,sharps('A','major'),Fraction(1/2))
+      for note in ["d","e","a","b"]:
+        self.expect_alter(note,sharps('A','major'),0)
 
     with it("has all sharps in C# major"):
-      for note_num in [0,1,2,3,4,5,6]:
-        self.expect_alter(note_num,sharps('C#','major'),Fraction(1/2))
+      for note in ["c","d","e","g","a","b"]:
+        self.expect_alter(note,sharps('C#','major'),Fraction(1/2))
 
     with it("has one flat in F major"):
-      for note_num in [6]:
-        self.expect_alter(note_num,sharps('F','major'),Fraction(-1/2))
-      for note_num in [0,1,2,3,4,5]:
-        self.expect_alter(note_num,sharps('F','major'),Fraction(0))
+      for note in ["b"]:
+        self.expect_alter(note,sharps('F','major'),Fraction(-1/2))
+      for note in ["c","d","e","f","g"]:
+        self.expect_alter(note,sharps('F','major'),Fraction(0))
 
     with it("has three flats in C minor"):
-      for note_num in [6,2,5]:
-        self.expect_alter(note_num,sharps('C','minor'),Fraction(-1/2))
-      for note_num in [0,1,4]:
-        self.expect_alter(note_num,sharps('C','minor'),Fraction(0))
+      for note in ["b","e","a"]:
+        self.expect_alter(note,sharps('C','minor'),Fraction(-1/2))
+      for note in ["c","d","f","g"]:
+        self.expect_alter(note,sharps('C','minor'),Fraction(0))
 
     with it("has all flats in Ab minor"):
-      for note_num in [0,1,2,3,4,5,6]:
-        self.expect_alter(note_num,sharps('Ab','minor'),Fraction(-1/2))
+      for note in ["c","d","e","g","a","b"]:
+        self.expect_alter(note,sharps('Ab','minor'),Fraction(-1/2))
+
+with description('Key') as self:
+  with it('takes a pitch and a mode'):
+    expect(Key(Pitch.c,'major')).not_to(equal(None))
 
 with description('sharps') as self:
-  with it('has 0 sharps for Cmajor'):
-    expect(sharps('C','major')).to(equal(0))
+  with _it('has 0 sharps for Cmajor'):
+    expect(Key(Pitch.c,'major').sharps).to(equal(0))
+
+with description('to_abc') as self:
+  with _it('handles Cmajor'):
+    expect(Key(Pitch.c,'major').to_abc).to(equal("Cmajor"))
+        
+        
+#        ('C','major')).to(equal(0))
 
   with it('has 3 flats for Eb major'):
     expect(sharps('Eb','major')).to(equal(-3))
