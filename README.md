@@ -11,9 +11,10 @@ LilyPond for the following features of the ABC specification:
 * Rests
 * Meters other than 6/8
 * Repeats of any kind
-* Tuplets
+* Key or meter changes
 * Section markers
 * Chords
+* Tuplets
 * Clefs other than treble clef
 * Modes besides major, minor, dorian, mixolydian
 * Explicit beaming
@@ -23,6 +24,9 @@ LilyPond for the following features of the ABC specification:
 * Decorations
 * Annotations
 * Modified or explicit key signatures
+
+No support is planned for:
+
 * Lyrics
 * Multiple voices
 
