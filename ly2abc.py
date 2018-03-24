@@ -12,9 +12,13 @@ from math import log2
 #    MarkupWord Drone -> note
 #    UserCommand ppMark -> P: [track ppMarks so far]
 #        (or rehearsal mark for release version)
-    
 
-class NoteConverter:
+class NoteContext:
+  def __init__(self,sharps=0,unit_length=Fraction(1/8)):
+    self.sharps = sharps
+    self.unit_length = unit_length
+
+class Note:
   octaves = [ lambda x: x.upper() + ",",
               lambda x: x.upper(),
               lambda x: x.lower(),
@@ -25,34 +29,68 @@ class NoteConverter:
   notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
   natural_alters = { Fraction(-1,2): "_",
-                 Fraction(0): "",
+                     Fraction(0): "",
+                     Fraction(1,2): "^"}
+
+  sharp_alters = { Fraction(-1,2): "_",
+                 Fraction(0): "=",
+                 Fraction(1,2): ""}
+
+  flat_alters = { Fraction(-1,2): "",
+                 Fraction(0): "=",
                  Fraction(1,2): "^"}
 
+  circle = [3, 0, 4, 1, 5, 2, 6]
 
-  def __init__(self,pitch,length):
+  def __init__(self,pitch,length,context=None):
     self.pitch = pitch
     self.length = length
+    self.context = context
 
   def to_abc(self): 
     return self.octave()(self.note()) + self.duration()
 
+  # private
+
   def octave(self):
-    return NoteConverter.octaves[self.pitch.octave]
+    return Note.octaves[self.pitch.octave]
 
   def note(self):
-    return self.accidental() + NoteConverter.notes[self.pitch.note]
+    return self.accidental() + Note.notes[self.pitch.note]
 
   def accidental(self):
-    return NoteConverter.natural_alters[self.pitch.alter]
+    # determine normal disposition of note in the mode
+    normal = self.key_alter()
+    alter = self.pitch.alter
+
+    # is this one altered?
+    if normal == 0:
+      return self.natural_alters[alter]
+    elif normal == Fraction(-1,2):
+      return self.flat_alters[alter]
+    elif normal == Fraction(1,2):
+      return self.sharp_alters[alter]
+
+  def key_alter(self):
+    sharp_order = self.circle.index(self.pitch.note) + 1
+    key_sharps = self.context.sharps
+    flat_order = sharp_order - 8
+
+    if(key_sharps > 0 and sharp_order <= key_sharps):
+      return Fraction(1/2)
+    elif(key_sharps < 0 and flat_order >= key_sharps):
+      return Fraction(-1/2)
+    else:
+      return 0
+
 
   def duration(self):
     eighths = self.length*8
-    if eighths > 1:
-      return str(eighths)
-    elif eighths == 1:
-      return ""
-    elif eighths.numerator == 1:
-      return "/" * int(log2(eighths.denominator))
+    prefix = ""
+    if eighths.numerator > 1:
+      prefix = str(eighths.numerator)
+
+    return prefix + ("/" * int(log2(eighths.denominator)))
 
 header_fields = { 
     'title': 'T',

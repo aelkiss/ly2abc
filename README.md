@@ -6,24 +6,28 @@ Usage:
 * `pipenv run python ly2abc.py myfile.ly`
 
 This is heavily a work in progress. It does not yet handle conversion from
-LilyPond for the following feature of the ABC specification:
+LilyPond for the following features of the ABC specification:
 
 * Rests
 * Meters other than 6/8
+* Repeats of any kind
 * Tuplets
+* Section markers
+* Chords
+* Clefs other than treble clef
+* Modes besides major, minor, dorian, mixolydian
 * Explicit beaming
-* Clefs other than treble clef (the default)
-* Repeats (including voltas)
+* Explicit line breaks
+* Double accidentals
 * Grace notes
 * Decorations
 * Annotations
+* Modified or explicit key signatures
 * Lyrics
-* Section markers
-* Chords
-* Explicit line breaks
 * Multiple voices
 
 On the LilyPond side, it does not support:
 
 * Music outside a `ppMusicOne` assign
 * Key signatures or time signatures outside a `global` assign
+* Transposed music sections
