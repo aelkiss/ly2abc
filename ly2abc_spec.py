@@ -77,6 +77,9 @@ class TestOutputter:
   def output(self,stuff):
     self.items.append(stuff)
 
+  def all_output(self):
+    return "".join(self.items)
+
 with description('ly2abc.NoteContext') as self:
   with it('can be constructed with number of sharps and a unit length'):
     expect(NoteContext(5,Fraction(1/4))).not_to(equal(None))
@@ -297,7 +300,7 @@ with description('Key') as self:
 with description('BarManager') as self:
   with context('in 6/8 time'):
     def bar_manager(self):
-      return BarManager(6,8)
+      return BarManager(6,8,outputter=TestOutputter())
 
     with it('can be constructed'):
       expect(self.bar_manager()).not_to(equal(None))
@@ -374,6 +377,24 @@ with description('BarManager') as self:
         bar_manager.pass_time(Fraction(6,8))
         expect(bar_manager.beam_break()).to(equal(True))
 
+    with description('bar_type'):
+      with it('can set the kind of barline to output'):
+        bar_manager = self.bar_manager()
+        bar_manager.bar_type = ":|"
+        expect(bar_manager.bar_type).to(equal(":|"))
+
+      with it('outputs the current barline if one is set'):
+        bar_manager = self.bar_manager()
+        bar_manager.pass_time(Fraction(6,8))
+        bar_manager.bar_type = ":|"
+        bar_manager.pass_time(Fraction(6,8))
+        expect(bar_manager.outputter.items).to(contain(' :| '))
+
+      with it('outputs | if no barline overrode it'):
+        bar_manager = self.bar_manager()
+        bar_manager.pass_time(Fraction(6,8))
+        bar_manager.pass_time(Fraction(6,8))
+        expect(bar_manager.outputter.items).to(contain(' | '))
 
   with context('in 4/4 time'):
     def bar_manager(self):
@@ -562,21 +583,25 @@ with description('LilypondMusic') as self:
       self.l.last_pitch = self.base_pitch
 
     with context('music_list'):
-      with it('outputs a continuation marker before a key change'):
+      with it('outputs a barline and a continuation marker before a meter change'):
         self.l.music_list(ly_snippet("{ c1 \\time 6/8 }"))
-        expect(self.output.items).to(contain('\\\n','M: 6/8\n'))
+        expect(self.output.all_output()).to(contain("| \\\nM: 6/8\n"))
 
-      with it('outputs a continuation marker before a tempo change'):
+      with it('outputs a barline and a continuation marker before a key change'):
         self.l.music_list(ly_snippet("{ c1 \\key ees\\dorian }"))
-        expect(self.output.items).to(contain('\\\n','K: Eb dorian\n'))
+        expect(self.output.all_output()).to(contain('| \\\nK: Eb dorian\n'))
+
+      with it('does not output a continuation marker where there would be a line break anyway'):
+        self.l.music_list(ly_snippet("{ c1 c1 c1 c1 c1 c1 \\key ees\\dorian }"))
+        expect(self.output.all_output()).to(contain('| \nK: Eb dorian\n'))
 
       with it('outputs notes inside it'):
         self.l.music_list(ly_snippet("{ c8 d e }"))
-        expect(self.output.items).to(contain('C','D','E'))
+        expect(self.output.all_output()).to(contain('CDE'))
     
       with it('handles relative octave'):
         self.l.music_list(ly_snippet("{ c8 c' d}"))
-        expect(self.output.items).to(contain('C','c','d'))
+        expect(self.output.all_output()).to(contain('Ccd'))
 
     with description('note'):
       with context('with a quarter note E above middle C'):
@@ -609,20 +634,29 @@ with description('LilypondMusic') as self:
             expect(self.l.bar_manager.elapsed_time).to(equal(Fraction(1/8)))
 
       with description('repeat'):
+
+        def handlers(self):
+          return { str: lambda x,_: self.str_handler(self,x,None) }
+
         with context('with a volta repeat'):
           with before.each:
-            handlers = { str: lambda x,_: self.l.output(x) }
-            self.l.repeat(Repeat('volta',2,["some","thing"]),handlers)
+            def str_handler(string,_):
+              self.l.bar_manager.pass_time(Fraction(1,2))
+              self.l.output(string)
+            handlers = { str: lambda x,_: str_handler(x,None) }
+
+            self.l.repeat(Repeat('volta',2,["some","thing"]), handlers)
+            self.l.bar_manager.output_breaks()
 
           with it('first outputs an opening repeat'):
-            expect(self.output.items).to(contain('|: '))
+            expect(self.output.items).to(contain(' |: '))
 
           with it('traverses inner music with the given handlers'):
             expect(self.output.items).to(contain('some'))
             expect(self.output.items).to(contain('thing'))
 
           with it('outputs a closing repeat'):
-            expect(self.output.items).to(contain(':| '))
+            expect(self.output.items).to(contain(' :| '))
 
         with context('with an unfolded repeat'):
           with before.each:
@@ -634,6 +668,17 @@ with description('LilypondMusic') as self:
 
           with it('duplicates the inner music the specified number of times'):
             expect(self.output.items).to(contain('some','thing','some','thing','some','thing'))
+
+      with it('combines :| and |: if needed'):
+        def str_handler(string,_):
+          self.l.bar_manager.pass_time(Fraction(1,2))
+          self.l.output(string)
+        handlers = { str: lambda x,_: str_handler(x,None) }
+
+        self.l.repeat(Repeat('volta',2,["some","thing"]),handlers)
+        self.l.repeat(Repeat('volta',2,["other","thing"]),handlers)
+        self.l.bar_manager.output_breaks()
+        expect(self.output.all_output()).to(contain('|: some thing :: other thing :|'))
 
   with context('traverse'):
     with it('calls the specified handler for each item in the node'):
@@ -648,7 +693,7 @@ with description('LilypondMusic') as self:
     with it('outputs abc for a snippet with time signature and key signature'):
       snippet = ly_snippet("{ \\key c \\major \\time 3/4 \\relative c' { c4 d e | c' d e | c,2 e4 | d2. } }")
       LilypondMusic(music=snippet,outputter=self.output).output_abc()
-      expect(str.join("",self.output.items)).to(equal("""K: C major
+      expect(self.output.all_output()).to(equal("""K: C major
 M: 3/4
 L: 1/8
 C2D2E2 | c2d2e2 | C4E2 | D6 | """))
@@ -656,10 +701,19 @@ C2D2E2 | c2d2e2 | C4E2 | D6 | """))
     with it('breaks beams in the middle of 4/4 measure and breaks lines every 6 measures'):
       snippet = ly_snippet("{ \\key c \\major \\time 4/4 \\relative c' { \\repeat unfold 16 { c8 d e f f e d c } }")
       LilypondMusic(music=snippet,outputter=self.output).output_abc()
-      expect(str.join("",self.output.items)).to(equal("""K: C major
+      expect(self.output.all_output()).to(equal("""K: C major
 M: 4/4
 L: 1/8
 CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | 
 CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | 
 CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | """))
+
+    with it('prints only one barline where there is a repeat'):
+      snippet = ly_snippet("{ \\key c \\major \\time 4/4 \\relative c' { \\repeat volta 2 { c4 d e f c d e f } } }")
+      LilypondMusic(music=snippet,outputter=self.output).output_abc()
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 4/4
+L: 1/8
+ |: C2D2 E2F2 | C2D2 E2F2 :| """))
+
 

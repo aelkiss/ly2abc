@@ -24,6 +24,10 @@ class FilehandleOutputter:
   def output(self,text):
     self.fh.write(text)
 
+class NoneOutputter:
+  def output(self,text):
+    pass
+
 class BarManager:
   """ provides support for telling when to break beaming, bars, and lines """
   # break beams after this number of beats in the numerator
@@ -38,24 +42,44 @@ class BarManager:
       9:  3
   }
       
-  def __init__(self,numerator,denominator):
+  def __init__(self,numerator,denominator,outputter=NoneOutputter()):
     self.elapsed_time = 0
     self.denominator = denominator
     self.numerator = numerator
-    self.printed_bar = False
+    self.outputter = outputter
+    # don't output a barline at the start of the piece
+    self.bar_type = None
 
   def pass_time(self,duration):
-    self.printed_bar = False
+    self.output_breaks()
+    self.bar_type = "|"
     self.elapsed_time += duration
 
+  def output_breaks(self,continuation=False):
+    if self.bar_line():
+      self.outputter.output(" %s " % (self.bar_type))
+    elif self.beam_break():
+      self.outputter.output(" ")
+
+    # output a continuation marker if we need to have a line break e.g. for a
+    # directive but wouldn't otherwise have a line break
+    if not self.line_break() and continuation:
+      self.outputter.output("\\")
+
+    if self.line_break() or continuation:
+      self.outputter.output("\n")
+
+
+
+
   def line_break(self):
-    return self.measures() % 6 == 0
+    return self.beats() != 0 and self.measures() % 6 == 0
 
   def beam_break(self):
-    return self.beats() % BarManager.beamers[self.numerator] == 0
+    return self.beats() != 0 and self.beats() % BarManager.beamers[self.numerator] == 0
 
   def bar_line(self):
-    return self.beats() % self.numerator == 0 and not self.printed_bar
+    return self.bar_type and self.beats() % self.numerator == 0
 
   def beats(self):
     return self.elapsed_time * self.denominator
@@ -65,11 +89,6 @@ class BarManager:
 
   def time_signature(self):
     return "%s/%s" % (self.numerator,self.denominator)
-
-  def set_printed_bar(self):
-    """Call when printing a bar line; this will prevent another barline from
-    being printed at this point"""
-    self.printed_bar = True
 
 class Key:
   alters = { flat: "b",
@@ -187,9 +206,13 @@ header_fields = {
 # def tempo:
 #   print("Handling tempo")
 
-class Traverser:
-  def __init__(self,outputter=FilehandleOutputter(sys.stdout)):
+class LilypondMusic:
+
+  def __init__(self,music,outputter=FilehandleOutputter(sys.stdout)):
     self.outputter = outputter
+    self.note_context = NoteContext()
+    self.unit_length = None
+    self.music = music
 
   def traverse(self,node,handlers):
     method = handlers.get(type(node))
@@ -202,16 +225,6 @@ class Traverser:
   def output(self,text):
     self.outputter.output(text)
 
-
-class LilypondMusic(Traverser):
-
-  def __init__(self,music,outputter=FilehandleOutputter(sys.stdout)):
-    super().__init__(outputter)
-    self.bar_manager = None
-    self.note_context = NoteContext()
-    self.unit_length = None
-    self.music = music
-
   def output_abc(self):
     handlers = { 
       ly.music.items.TimeSignature: self.time_signature,
@@ -219,11 +232,13 @@ class LilypondMusic(Traverser):
       ly.music.items.Relative: self.relative,
     }
     self.traverse(self.music,handlers)
+    # finalize bars at the end
+    if self.bar_manager: self.bar_manager.output_breaks()
 
   def time_signature(self,t,_=None):
     numerator = t.numerator()
     denominator = t.fraction().denominator
-    self.bar_manager = BarManager(numerator,denominator)
+    self.bar_manager = BarManager(numerator,denominator,self.outputter)
     self.output("M: %s\n" % self.bar_manager.time_signature())
 
     if self.unit_length == None:
@@ -257,10 +272,7 @@ class LilypondMusic(Traverser):
     duration = n.length()
     pitch = n.pitch.copy()
     self.bar_manager.pass_time(duration)
-#    sys.stderr.write("Last pitch was %s\n" % self.last_pitch)
-#    sys.stderr.write("Current pitch is %s\n" % pitch)
     pitch.makeAbsolute(self.last_pitch)
-#    sys.stderr.write("Absolutized pitch is %s\n" % pitch)
     self.print_note(pitch,duration)
     self.last_pitch = pitch
 
@@ -271,11 +283,11 @@ class LilypondMusic(Traverser):
 
   def repeat(self,r,handlers=None):
     if(r.specifier() == 'volta'):
-      self.output("|: ")
-      self.bar_manager.set_printed_bar()
+      if self.bar_manager.bar_type == ":|": self.bar_manager.bar_type = "::"
+      else: self.bar_manager.bar_type = "|:"
+
       for n in r: self.traverse(n,handlers)
-      self.output(":| ")
-      self.bar_manager.set_printed_bar()
+      self.bar_manager.bar_type = ":|"
     elif(r.specifier() == 'unfold'):
       for i in range(0,r.repeat_count()):
         for n in r: self.traverse(n,handlers)
@@ -284,11 +296,11 @@ class LilypondMusic(Traverser):
 
   def music_list(self,m,_=None):
     def time_signature(t,handlers=None):
-      self.output("\\\n")
+      self.bar_manager.output_breaks(continuation=True)
       return self.time_signature(t,handlers)
 
     def key_signature(k,handlers=None):
-      self.output("\\\n")
+      self.bar_manager.output_breaks(continuation=True)
       return self.key_signature(k,handlers)
 
     handlers = {
@@ -306,14 +318,6 @@ class LilypondMusic(Traverser):
   def print_note(self,pitch,duration):
     self.output(Note(pitch,duration,self.note_context).to_abc())
   #        print(f"time so far: {time_so_far}")
-    if self.bar_manager.bar_line():
-      self.output(" | ")
-      self.bar_manager.set_printed_bar()
-    elif self.bar_manager.beam_break():
-      self.output(" ")
-    if self.bar_manager.line_break():
-      self.output("\n")
-
 
 if __name__ == "__main__":
   f=open(sys.argv[1],"r")

@@ -3,12 +3,13 @@ url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[packages]
+python-ly = "*"
+coverage = "*"
+
 [dev-packages]
 mamba = "*"
 expects = "*"
 ptpython = "*"
 ipython = "*"
 
-[packages]
-python-ly = "*"
-coverage = "*"
