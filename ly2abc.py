@@ -1,6 +1,7 @@
 import ly.document
 import ly.music
-from sys import argv
+import ly.music.items
+import sys
 from fractions import Fraction
 from math import log2
 
@@ -15,6 +16,13 @@ from math import log2
 flat = Fraction(-1,2)
 natural = 0
 sharp = Fraction(1,2)
+
+class FilehandleOutputter:
+  def __init__(self,fh):
+    self.fh = fh
+
+  def output(self,text):
+    self.fh.write(text)
 
 class BarManager:
   """ provides support for telling when to break beaming, bars, and lines """
@@ -34,8 +42,10 @@ class BarManager:
     self.elapsed_time = 0
     self.denominator = denominator
     self.numerator = numerator
+    self.printed_bar = False
 
   def pass_time(self,duration):
+    self.printed_bar = False
     self.elapsed_time += duration
 
   def line_break(self):
@@ -45,7 +55,7 @@ class BarManager:
     return self.beats() % BarManager.beamers[self.numerator] == 0
 
   def bar_line(self):
-    return self.beats() % self.numerator == 0
+    return self.beats() % self.numerator == 0 and not self.printed_bar
 
   def beats(self):
     return self.elapsed_time * self.denominator
@@ -55,6 +65,11 @@ class BarManager:
 
   def time_signature(self):
     return "%s/%s" % (self.numerator,self.denominator)
+
+  def set_printed_bar(self):
+    """Call when printing a bar line; this will prevent another barline from
+    being printed at this point"""
+    self.printed_bar = True
 
 class Key:
   alters = { flat: "b",
@@ -172,85 +187,146 @@ header_fields = {
 # def tempo:
 #   print("Handling tempo")
 
-def ly_globals(g):
-  unit_length = Fraction(1/8)
+class Traverser:
+  def __init__(self,outputter=FilehandleOutputter(sys.stdout)):
+    self.outputter = outputter
 
-  for t in g.find(ly.music.items.TimeSignature):
-    global bar_manager
+  def traverse(self,node,handlers):
+    method = handlers.get(type(node))
+    if method: 
+      method(node,handlers)
+    else:
+      for child in node:
+        self.traverse(child,handlers)
+
+  def output(self,text):
+    self.outputter.output(text)
+
+
+class LilypondMusic(Traverser):
+
+  def __init__(self,music,outputter=FilehandleOutputter(sys.stdout)):
+    super().__init__(outputter)
+    self.bar_manager = None
+    self.note_context = NoteContext()
+    self.unit_length = None
+    self.music = music
+
+  def output_abc(self):
+    handlers = { 
+      ly.music.items.TimeSignature: self.time_signature,
+      ly.music.items.KeySignature: self.key_signature,
+      ly.music.items.Relative: self.relative,
+    }
+    self.traverse(self.music,handlers)
+
+  def time_signature(self,t,_=None):
     numerator = t.numerator()
     denominator = t.fraction().denominator
-    bar_manager = BarManager(numerator,denominator)
-    print("M: %s" % bar_manager.time_signature())
-    if Fraction(numerator,denominator) < Fraction(3/4):
-      unit_length = Fraction(1/16)
-    elif denominator <= 2:
-      unit_length = Fraction(1/4)
+    self.bar_manager = BarManager(numerator,denominator)
+    self.output("M: %s\n" % self.bar_manager.time_signature())
 
-    print("L: %s" % unit_length)
+    if self.unit_length == None:
+      if Fraction(numerator,denominator) < Fraction(3,4):
+        self.unit_length = Fraction(1,16)
+      elif denominator <= 2:
+        self.unit_length = Fraction(1,4)
+      else:
+        self.unit_length = Fraction(1,8)
 
-  for k in g.find(ly.music.items.KeySignature):
-    global note_context
+      self.output("L: %s\n" % self.unit_length)
+      self.note_context.unit_length = self.unit_length
+
+  def key_signature(self,k,_=None):
     key = Key(k.pitch(),k.mode())
-    note_context = NoteContext(key.sharps(),unit_length)
-    print("K: %s" % (key.to_abc()))
+    self.note_context.sharps = key.sharps()
+    self.output("K: %s\n" % (key.to_abc()))
 
-# def chords:
-#   print("Handling chords")
+  def relative(self,r,_=None):
+    def note(n,_=None):
+      self.last_pitch = n.pitch
 
-def print_note(pitch,duration):
-  global note_context, bar_manager
+    handlers = {
+      ly.music.items.Note: note,
+      ly.music.items.MusicList: self.music_list
+    }
 
-  print(Note(pitch,duration,note_context).to_abc(), end='')
-#        print(f"time so far: {time_so_far}")
-  if bar_manager.bar_line():
-    print(" | ",end='')
-    if bar_manager.line_break():
-      print()
-  elif bar_manager.beam_break():
-    print(" ",end='')
+    self.traverse(r,handlers)
 
+  def note(self,n,_=None):
+    duration = n.length()
+    pitch = n.pitch.copy()
+    self.bar_manager.pass_time(duration)
+#    sys.stderr.write("Last pitch was %s\n" % self.last_pitch)
+#    sys.stderr.write("Current pitch is %s\n" % pitch)
+    pitch.makeAbsolute(self.last_pitch)
+#    sys.stderr.write("Absolutized pitch is %s\n" % pitch)
+    self.print_note(pitch,duration)
+    self.last_pitch = pitch
 
-def music(music_assign):
-  for m in music_assign.find(ly.music.items.MusicList,depth=2):
-    last_pitch = None
-    for n in music_assign.find((ly.music.items.Note,ly.music.items.Rest)):
-      bar_manager.pass_time(n.length())
+  def rest(self,r,_=None):
+    duration = r.length()
+    self.bar_manager.pass_time(duration)
+    self.print_note(None,duration)
 
-      pitch = None
-      duration = n.length()
+  def repeat(self,r,handlers=None):
+    if(r.specifier() == 'volta'):
+      self.output("|: ")
+      self.bar_manager.set_printed_bar()
+      for n in r: self.traverse(n,handlers)
+      self.output(":| ")
+      self.bar_manager.set_printed_bar()
+    elif(r.specifier() == 'unfold'):
+      for i in range(0,r.repeat_count()):
+        for n in r: self.traverse(n,handlers)
+    else:
+      sys.stsderr.write("WARNING: Ignoring unhandled repeat specifier %s\n" % r.specifier())
 
-      # make the pitch absolute
-      if hasattr(n,'pitch'):
-        pitch = n.pitch
-        if last_pitch: pitch.makeAbsolute(last_pitch)
+  def music_list(self,m,_=None):
+    def time_signature(t,handlers=None):
+      self.output("\\\n")
+      return self.time_signature(t,handlers)
 
-      if(duration > 0):
-        print_note(pitch,duration)
+    def key_signature(k,handlers=None):
+      self.output("\\\n")
+      return self.key_signature(k,handlers)
 
-      if hasattr(n,'pitch'): last_pitch = pitch
+    handlers = {
+      ly.music.items.Note: self.note, 
+      ly.music.items.Rest: self.rest,
+      ly.music.items.TimeSignature: time_signature,
+      ly.music.items.KeySignature: key_signature,
+      ly.music.items.Repeat: self.repeat
+    }
 
-  print("")
-  print("")
+    self.traverse(m,handlers)
         
+  # private
 
-
-dispatch = {
-#    'ppTempo': tempo,
-    'global' : ly_globals,
-#    'ppChordLine': chords,
-    'ppMusicOne': music
-}
+  def print_note(self,pitch,duration):
+    self.output(Note(pitch,duration,self.note_context).to_abc())
+  #        print(f"time so far: {time_so_far}")
+    if self.bar_manager.bar_line():
+      self.output(" | ")
+      self.bar_manager.set_printed_bar()
+    elif self.bar_manager.beam_break():
+      self.output(" ")
+    if self.bar_manager.line_break():
+      self.output("\n")
 
 
 if __name__ == "__main__":
-  f=open(argv[1],"r")
+  f=open(sys.argv[1],"r")
   d=ly.document.Document(f.read())
   m=ly.music.document(d)
 
+  print("X: 1")
   for h in m.find(ly.music.items.Header):
     for a in h.find(ly.music.items.Assignment):
       abc_field = header_fields[a.name()]
       print(f"{abc_field}: {a.value().plaintext()}")
 
-  for a in m.find(ly.music.items.Assignment,depth=1):
-    dispatch.get(a.name(), lambda x: None)(a)
+  LilypondMusic(m).output_abc()
+
+  print()
+  print()

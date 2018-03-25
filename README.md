@@ -8,7 +8,7 @@ Usage:
 This is heavily a work in progress. It does not yet handle conversion from
 LilyPond for the following features of the ABC specification:
 
-* Repeats of any kind
+* Alternative endings
 * Ties or slurs
 * Section markers
 * Key or meter changes
@@ -21,8 +21,6 @@ LilyPond for the following features of the ABC specification:
 * Decorations
 * Grace notes
 * Clefs other than treble clef
-* Explicit beaming
-* Explicit line breaks
 * Multi-measure rests
 * Modified or explicit key signatures
 
@@ -33,9 +31,13 @@ No support is planned for:
 
 On the LilyPond side, it does not support:
 
+* Explicit barlines
+* Explicit beaming
+* Explicit line breaks
 * Music outside a `ppMusicOne` assign
 * Key signatures or time signatures outside a `global` assign
 * Transposed music sections
+* Any feature of LilyPond that isn't supported by ABC
 
 To make overrideable:
 
