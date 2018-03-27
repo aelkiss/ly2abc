@@ -49,17 +49,17 @@ class BarManager:
     self.outputter = outputter
     # don't output a barline at the start of the piece
     self.bar_type = None
+    self.broke = False
 
   def pass_time(self,duration):
     self.output_breaks()
     self.bar_type = "|"
     self.elapsed_time += duration
+    self.broke = False
 
   def output_breaks(self,continuation=False):
-    if self.bar_line():
-      self.outputter.output(" %s " % (self.bar_type))
-    elif self.beam_break():
-      self.outputter.output(" ")
+    if not self.broke:
+      self.output_inline_breaks()
 
     # output a continuation marker if we need to have a line break e.g. for a
     # directive but wouldn't otherwise have a line break
@@ -69,8 +69,19 @@ class BarManager:
     if self.line_break() or continuation:
       self.outputter.output("\n")
 
+  def output_inline_breaks(self):
+    if self.broke:
+      return
 
+    if self.bar_line():
+      self.outputter.output(" %s " % (self.bar_type))
+    elif self.beam_break():
+      self.outputter.output(" ")
 
+  
+  def manual_break(self,break_str):
+    self.broke = True
+    self.outputter.output(break_str)
 
   def line_break(self):
     return self.beats() != 0 and self.measures() % 6 == 0
@@ -263,7 +274,7 @@ class LilypondMusic:
 
     handlers = {
       ly.music.items.Note: note,
-      ly.music.items.MusicList: self.music_list
+      ly.music.items.MusicList: self.music_list,
     }
 
     self.traverse(r,handlers)
@@ -308,10 +319,30 @@ class LilypondMusic:
       ly.music.items.Rest: self.rest,
       ly.music.items.TimeSignature: time_signature,
       ly.music.items.KeySignature: key_signature,
-      ly.music.items.Repeat: self.repeat
+      ly.music.items.Repeat: self.repeat,
+      ly.music.items.Command: self.command
     }
 
     self.traverse(m,handlers)
+
+  def command(self,m,_=None):
+    if(m.token == "\\bar"):
+      bars = {
+          "|": " | ",
+          "||": " || ",
+          ".|": " [| ",
+          "|.": " |] ",
+          ".|:": " |: ",
+          ":..:": " :: ",
+          ":|.|:": " :: ",
+          ":|.:": " :: ",
+          ":.|.:": " :: ",
+          "[|:":   " |: ",
+          ":|][|:": " :: ",
+          ":|]": " :| ",
+          ":|.": " :| ",
+          }
+      self.bar_manager.manual_break((bars.get(m.next_sibling().plaintext(),' | ')))
         
   # private
 

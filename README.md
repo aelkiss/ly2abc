@@ -31,7 +31,6 @@ No support is planned for:
 
 On the LilyPond side, it does not support:
 
-* Explicit barlines
 * Explicit beaming
 * Explicit line breaks
 * Music outside a `ppMusicOne` assign
