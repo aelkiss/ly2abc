@@ -43,6 +43,11 @@ class KeySignature:
     self.pitch = lambda: pitch
     self.mode = lambda: mode
 
+class Partial:
+  def __init__(self,duration):
+    self.partial_length = lambda: duration
+
+
 with description('LilypondMusic') as self:
   with before.each:
     self.output = TestOutputter()
@@ -170,6 +175,11 @@ with description('LilypondMusic') as self:
         self.l.music_list(ly_snippet("{ c8 c' d}"))
         expect(self.output.all_output()).to(contain('Ccd'))
 
+    with context('partial'):
+      with it('rewinds the elapsed time by the length of the partial'):
+        self.l.partial(Partial(Fraction(1,4)))
+        expect(self.l.bar_manager.elapsed_time).to(equal(Fraction(-1,4)))
+
     with description('note'):
       with context('with a quarter note E above middle C'):
         with before.each:
@@ -241,6 +251,22 @@ with description('LilypondMusic') as self:
           with it('passes time equaling the length of the rest'):
             expect(self.l.bar_manager.elapsed_time).to(equal(Fraction(1/8)))
 
+      with description('alternative'):
+        with it("prints the first and second endings with empty nodes"):
+          self.l.repeat(Repeat('volta',2,[]))
+          self.l.alternative([[[],[]]])
+          expect(self.output.all_output()).to(contain("[1  :|]  [2"))
+
+        with it("in a \\repeat volta 3, prints endings 1-2 on the first alternative"):
+          handlers = {
+            LyRest: lambda rest,_: self.l.bar_manager.pass_time(rest.length())
+          }
+          self.l.repeat(Repeat('volta',3,[LyRest(1)]),handlers)
+          print(self.output.all_output())
+          self.l.alternative([[[],[]]])
+          expect(self.output.all_output()).to(contain("|:  |  [1-2  :|]  [3 "))
+          
+
       with description('repeat'):
 
         def handlers(self):
@@ -277,16 +303,16 @@ with description('LilypondMusic') as self:
           with it('duplicates the inner music the specified number of times'):
             expect(self.output.items).to(contain('some','thing','some','thing','some','thing'))
 
-      with it('combines :| and |: if needed'):
-        def str_handler(string,_):
-          self.l.bar_manager.pass_time(Fraction(1,2))
-          self.l.output(string)
-        handlers = { str: lambda x,_: str_handler(x,None) }
+        with it('combines :| and |: if needed'):
+          def str_handler(string,_):
+            self.l.bar_manager.pass_time(Fraction(1,2))
+            self.l.output(string)
+          handlers = { str: lambda x,_: str_handler(x,None) }
 
-        self.l.repeat(Repeat('volta',2,["some","thing"]),handlers)
-        self.l.repeat(Repeat('volta',2,["other","thing"]),handlers)
-        self.l.bar_manager.output_breaks()
-        expect(self.output.all_output()).to(contain('|: some thing :: other thing :|'))
+          self.l.repeat(Repeat('volta',2,["some","thing"]),handlers)
+          self.l.repeat(Repeat('volta',2,["other","thing"]),handlers)
+          self.l.bar_manager.output_breaks()
+          expect(self.output.all_output()).to(contain('|: some thing :: other thing :|'))
 
   with context('traverse'):
     with it('calls the specified handler for each item in the node'):

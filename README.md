@@ -8,7 +8,6 @@ Usage:
 This is heavily a work in progress. It does not yet handle conversion from
 LilyPond for the following features of the ABC specification:
 
-* Alternative endings
 * Ties or slurs
 * Section markers
 * Key or meter changes
@@ -31,6 +30,7 @@ No support is planned for:
 
 On the LilyPond side, it does not support:
 
+* Volta repeats that are not on a barline boundary
 * Explicit beaming
 * Explicit line breaks
 * Music outside a `ppMusicOne` assign

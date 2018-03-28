@@ -79,7 +79,7 @@ class BarManager:
       self.outputter.output(" ")
 
   
-  def manual_break(self,break_str):
+  def manual_bar(self,break_str):
     self.broke = True
     self.outputter.output(break_str)
 
@@ -287,6 +287,10 @@ class LilypondMusic:
     self.print_note(pitch,duration)
     self.last_pitch = pitch
 
+  def partial(self,p,_=None):
+    duration = p.partial_length()
+    self.bar_manager.pass_time(-duration)
+
   def rest(self,r,_=None):
     duration = r.length()
     self.bar_manager.pass_time(duration)
@@ -297,6 +301,7 @@ class LilypondMusic:
       if self.bar_manager.bar_type == ":|": self.bar_manager.bar_type = "::"
       else: self.bar_manager.bar_type = "|:"
 
+      self.repeat_count = r.repeat_count()
       for n in r: self.traverse(n,handlers)
       self.bar_manager.bar_type = ":|"
     elif(r.specifier() == 'unfold'):
@@ -304,6 +309,38 @@ class LilypondMusic:
         for n in r: self.traverse(n,handlers)
     else:
       sys.stsderr.write("WARNING: Ignoring unhandled repeat specifier %s\n" % r.specifier())
+      
+  def alternative(self,a,handlers={}):
+    def output_alternative(alt_range,music_list):
+      self.outputter.output(" [%s " % alt_range)
+      self.traverse(music_list,handlers)
+      self.bar_manager.manual_bar(" :|] ")
+
+    # override the ending repeat from the volta, if needed
+    self.bar_manager.bar_type = '|'
+    self.bar_manager.output_breaks()
+    for music_list in a:
+
+      alt_range = "1"
+      if self.repeat_count > len(music_list):
+        alt_range = "1-%d" % (self.repeat_count - len(music_list) + 1)
+      output_alternative(alt_range,music_list[0])
+
+      alternative = self.repeat_count - len(music_list) + 2
+
+#      if len(music_list) > 3:
+#        for ending in music_list[1:-1]:
+#          output_alternative(str(alternative),ending())
+#          alternative += 1
+
+      if len(music_list) >= 2:
+        # last ending - would be rather odd not to have this
+        self.outputter.output((" [%d ") % alternative)
+        self.traverse(music_list[-1],handlers)
+
+    self.repeat_count = None
+
+
 
   def music_list(self,m,_=None):
     def time_signature(t,handlers=None):
@@ -320,7 +357,8 @@ class LilypondMusic:
       ly.music.items.TimeSignature: time_signature,
       ly.music.items.KeySignature: key_signature,
       ly.music.items.Repeat: self.repeat,
-      ly.music.items.Command: self.command
+      ly.music.items.Command: self.command,
+      ly.music.items.Partial: self.partial
     }
 
     self.traverse(m,handlers)
@@ -342,7 +380,7 @@ class LilypondMusic:
           ":|]": " :| ",
           ":|.": " :| ",
           }
-      self.bar_manager.manual_break((bars.get(m.next_sibling().plaintext(),' | ')))
+      self.bar_manager.manual_bar((bars.get(m.next_sibling().plaintext(),' | ')))
         
   # private
 
@@ -351,17 +389,21 @@ class LilypondMusic:
   #        print(f"time so far: {time_so_far}")
 
 if __name__ == "__main__":
-  f=open(sys.argv[1],"r")
-  d=ly.document.Document(f.read())
-  m=ly.music.document(d)
+  index = 1
+  for filename in sys.argv[1:]:
+    f=open(filename,"r")
+    d=ly.document.Document(f.read())
+    m=ly.music.document(d)
 
-  print("X: 1")
-  for h in m.find(ly.music.items.Header):
-    for a in h.find(ly.music.items.Assignment):
-      abc_field = header_fields[a.name()]
-      print(f"{abc_field}: {a.value().plaintext()}")
+    print("X: %d" % (index))
+    index += 1
 
-  LilypondMusic(m).output_abc()
+    for h in m.find(ly.music.items.Header):
+      for a in h.find(ly.music.items.Assignment):
+        abc_field = header_fields[a.name()]
+        print(f"{abc_field}: {a.value().plaintext()}")
 
-  print()
-  print()
+    LilypondMusic(m).output_abc()
+
+    print()
+    print()
