@@ -63,8 +63,6 @@ class BarManager:
 
     # output a continuation marker if we need to have a line break e.g. for a
     # directive but wouldn't otherwise have a line break
-    if not self.line_break() and continuation:
-      self.outputter.output("\\")
 
     if self.line_break() or continuation:
       self.outputter.output("\n")
@@ -210,8 +208,10 @@ header_fields = {
     'title': 'T',
     'subtitle': 'T',
     'poet': 'C',
+    'composer': 'C',
     'meter': 'P',
-    'tagline': 'N'
+    'tagline': 'N',
+    'piece': 'N'
 }
 
 # def tempo:
@@ -396,6 +396,8 @@ if __name__ == "__main__":
     m=ly.music.document(d)
 
     print("X: %d" % (index))
+    # automatically break lines for display except where there's a $ character
+    print("I: linebreak $")
     index += 1
 
     for h in m.find(ly.music.items.Header):

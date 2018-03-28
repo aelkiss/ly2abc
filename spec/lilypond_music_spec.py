@@ -155,16 +155,12 @@ with description('LilypondMusic') as self:
       self.l.last_pitch = self.base_pitch
 
     with context('music_list'):
-      with it('outputs a barline and a continuation marker before a meter change'):
+      with it('outputs a barline before a meter change'):
         self.l.music_list(ly_snippet("{ c1 \\time 6/8 }"))
-        expect(self.output.all_output()).to(contain("| \\\nM: 6/8\n"))
+        expect(self.output.all_output()).to(contain("| \nM: 6/8\n"))
 
-      with it('outputs a barline and a continuation marker before a key change'):
+      with it('outputs a barline marker before a key change'):
         self.l.music_list(ly_snippet("{ c1 \\key ees\\dorian }"))
-        expect(self.output.all_output()).to(contain('| \\\nK: Eb dorian\n'))
-
-      with it('does not output a continuation marker where there would be a line break anyway'):
-        self.l.music_list(ly_snippet("{ c1 c1 c1 c1 c1 c1 \\key ees\\dorian }"))
         expect(self.output.all_output()).to(contain('| \nK: Eb dorian\n'))
 
       with it('outputs notes inside it'):
