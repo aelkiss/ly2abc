@@ -79,3 +79,24 @@ L: 1/8
 C2D2 E2F2 |: 
 M: 6/8
 CDE FGA :| """))
+
+    with it('outputs a repeat marker before a part change'):
+      output_c_major_snippet("4/4","c4^\ppMarkA d e f \\repeat volta 2 { c4^\ppMarkB d e f }",self.output)
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 4/4
+L: 1/8
+P: A
+C2D2 E2F2 |: 
+P: B
+C2D2 E2F2 :| """))
+
+    with it('outputs time signature immediately after a manual bar'):
+      output_c_major_snippet("4/4","c4 d e f \\bar \"||\" \\time 6/4 c d e f g a \\time 6/8 a8 g f f g a \\bar \"|.\"",self.output)
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 4/4
+L: 1/8
+C2D2 E2F2 || 
+M: 6/4
+C2D2E2 F2G2A2 | 
+M: 6/8
+AGF FGA |] """))

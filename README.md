@@ -41,3 +41,9 @@ To make overrideable:
 
 * Unit length
 * Beaming strategy
+
+BUGS
+
+various things have extra line breaks after P; some part markers are apparently misplaced
+transpose still isn't handled
+

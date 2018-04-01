@@ -59,14 +59,24 @@ class BarManager:
     self.numerator = numerator
     self.denominator = denominator
     self.elapsed_time = 0
-    self.after_bar_items += ["\n","M: %s\n" % self.time_signature()]
+    self.output_after_bar("\n", "M: %s\n" % self.time_signature())
+
+
+  def output_after_bar(self,*items):
+    # if right after a break, print it, otherwise wait for right after 
+    # the next bar
+    if self.broke:
+      for item in items:
+        self.outputter.output(item)
+    else:
+      self.after_bar_items += items
 
 
   def pass_time(self,duration):
     if duration == 0: return
     self.at_beginning = False
     self.output_breaks()
-    self.bar_type = "|"
+    if self.bar_type == None: self.bar_type = '|'
     self.elapsed_time += duration
     self.broke = False
 
@@ -88,6 +98,7 @@ class BarManager:
 
     if self.bar_line():
       self.outputter.output(" %s " % (self.bar_type))
+      self.bar_type = "|"
       for item in self.after_bar_items:
         self.outputter.output(item)
       self.after_bar_items = []
@@ -395,8 +406,6 @@ class LilypondMusic:
         self.flush_buffer()
     for n in usercommand:
       self.traverse(usercommand,handlers)
-
-
 
   def command(self,m,_=None):
     if(m.token == "\\bar"):
