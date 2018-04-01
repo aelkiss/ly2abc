@@ -10,7 +10,6 @@ LilyPond for the following features of the ABC specification:
 
 * Ties or slurs
 * Section markers
-* Key or meter changes
 * Chords
 * Tuplets
 * Annotations

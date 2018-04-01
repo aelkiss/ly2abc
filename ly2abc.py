@@ -2,6 +2,8 @@ import ly.document
 import ly.music
 import ly.music.items
 import sys
+import re
+import pdb
 from fractions import Fraction
 from math import log2
 
@@ -44,22 +46,35 @@ class BarManager:
       
   def __init__(self,numerator,denominator,outputter=NoneOutputter()):
     self.elapsed_time = 0
+    self.at_beginning = True
     self.denominator = denominator
     self.numerator = numerator
     self.outputter = outputter
     # don't output a barline at the start of the piece
     self.bar_type = None
     self.broke = False
+    self.after_bar_items = []
+
+  def set_time_signature(self,numerator,denominator):
+    self.numerator = numerator
+    self.denominator = denominator
+    self.elapsed_time = 0
+    self.after_bar_items += ["\n","M: %s\n" % self.time_signature()]
+
 
   def pass_time(self,duration):
+    if duration == 0: return
+    self.at_beginning = False
     self.output_breaks()
     self.bar_type = "|"
     self.elapsed_time += duration
     self.broke = False
 
   def output_breaks(self,continuation=False):
-    if not self.broke:
-      self.output_inline_breaks()
+    if self.at_beginning and self.bar_type == None:
+      return
+
+    self.output_inline_breaks()
 
     # output a continuation marker if we need to have a line break e.g. for a
     # directive but wouldn't otherwise have a line break
@@ -73,10 +88,14 @@ class BarManager:
 
     if self.bar_line():
       self.outputter.output(" %s " % (self.bar_type))
+      for item in self.after_bar_items:
+        self.outputter.output(item)
+      self.after_bar_items = []
+      self.broke = True
     elif self.beam_break():
       self.outputter.output(" ")
+      self.broke = True
 
-  
   def manual_bar(self,break_str):
     self.broke = True
     self.outputter.output(break_str)
@@ -88,7 +107,8 @@ class BarManager:
     return self.beats() != 0 and self.beats() % BarManager.beamers[self.numerator] == 0
 
   def bar_line(self):
-    return self.bar_type and self.beats() % self.numerator == 0
+    rval=(self.bar_type and self.beats() % self.numerator == 0)
+    return rval
 
   def beats(self):
     return self.elapsed_time * self.denominator
@@ -224,6 +244,9 @@ class LilypondMusic:
     self.note_context = NoteContext()
     self.unit_length = None
     self.music = music
+    self.section = None
+    self.note_buffer = []
+    self.current_duration = 0
 
   def traverse(self,node,handlers):
     method = handlers.get(type(node))
@@ -249,19 +272,17 @@ class LilypondMusic:
   def time_signature(self,t,_=None):
     numerator = t.numerator()
     denominator = t.fraction().denominator
-    self.bar_manager = BarManager(numerator,denominator,self.outputter)
-    self.output("M: %s\n" % self.bar_manager.time_signature())
 
     if self.unit_length == None:
-      if Fraction(numerator,denominator) < Fraction(3,4):
-        self.unit_length = Fraction(1,16)
-      elif denominator <= 2:
-        self.unit_length = Fraction(1,4)
-      else:
-        self.unit_length = Fraction(1,8)
-
+      self.bar_manager = BarManager(numerator,denominator,self.outputter)
+      self.unit_length = self.default_unit_length(numerator,denominator)
+      self.output("M: %s\n" % self.bar_manager.time_signature())
       self.output("L: %s\n" % self.unit_length)
       self.note_context.unit_length = self.unit_length
+    else:
+      # meter change
+      self.flush_buffer()
+      self.bar_manager.set_time_signature(numerator,denominator)
 
   def key_signature(self,k,_=None):
     key = Key(k.pitch(),k.mode())
@@ -282,7 +303,6 @@ class LilypondMusic:
   def note(self,n,_=None):
     duration = n.length()
     pitch = n.pitch.copy()
-    self.bar_manager.pass_time(duration)
     pitch.makeAbsolute(self.last_pitch)
     self.print_note(pitch,duration)
     self.last_pitch = pitch
@@ -293,7 +313,6 @@ class LilypondMusic:
 
   def rest(self,r,_=None):
     duration = r.length()
-    self.bar_manager.pass_time(duration)
     self.print_note(None,duration)
 
   def repeat(self,r,handlers=None):
@@ -303,6 +322,7 @@ class LilypondMusic:
 
       self.repeat_count = r.repeat_count()
       for n in r: self.traverse(n,handlers)
+      self.flush_buffer()
       self.bar_manager.bar_type = ":|"
     elif(r.specifier() == 'unfold'):
       for i in range(0,r.repeat_count()):
@@ -340,28 +360,43 @@ class LilypondMusic:
 
     self.repeat_count = None
 
-
-
   def music_list(self,m,_=None):
-    def time_signature(t,handlers=None):
-      self.bar_manager.output_breaks(continuation=True)
-      return self.time_signature(t,handlers)
-
     def key_signature(k,handlers=None):
+      self.flush_buffer()
       self.bar_manager.output_breaks(continuation=True)
       return self.key_signature(k,handlers)
 
     handlers = {
       ly.music.items.Note: self.note, 
       ly.music.items.Rest: self.rest,
-      ly.music.items.TimeSignature: time_signature,
+      ly.music.items.TimeSignature: self.time_signature,
       ly.music.items.KeySignature: key_signature,
       ly.music.items.Repeat: self.repeat,
       ly.music.items.Command: self.command,
+      ly.music.items.UserCommand: self.usercommand,
       ly.music.items.Partial: self.partial
     }
 
     self.traverse(m,handlers)
+    self.flush_buffer()
+
+  def usercommand(self,usercommand,handlers):
+    if(usercommand.name() == 'ppMark'):
+      if not self.section: self.section = 'A'
+      self.flush_buffer()
+      self.bar_manager.output_breaks(continuation=True)
+      self.outputter.output("P: %s\n" % self.section)
+      self.section = chr(ord(self.section) + 1)
+    else:
+      r = re.match(r'ppMark(\w)',usercommand.name())
+      if r: 
+        self.bar_manager.output_breaks(continuation=True)
+        self.outputter.output("P: %s\n" % r.group(1))
+        self.flush_buffer()
+    for n in usercommand:
+      self.traverse(usercommand,handlers)
+
+
 
   def command(self,m,_=None):
     if(m.token == "\\bar"):
@@ -380,13 +415,33 @@ class LilypondMusic:
           ":|]": " :| ",
           ":|.": " :| ",
           }
+      self.flush_buffer()
       self.bar_manager.manual_bar((bars.get(m.next_sibling().plaintext(),' | ')))
         
   # private
 
   def print_note(self,pitch,duration):
-    self.output(Note(pitch,duration,self.note_context).to_abc())
+    self.flush_buffer()
+    self.note_buffer = [Note(pitch,duration,self.note_context).to_abc()]
+    self.current_duration += duration
+#    self.output(self.note_buffer[0])
   #        print(f"time so far: {time_so_far}")
+
+  def default_unit_length(self,numerator,denominator):
+    if Fraction(numerator,denominator) < Fraction(3,4):
+      return Fraction(1,16)
+    elif denominator <= 2:
+      return Fraction(1,4)
+    else:
+      return Fraction(1,8)
+
+  def flush_buffer(self):
+    self.bar_manager.pass_time(self.current_duration)
+    for item in self.note_buffer:
+      self.output(item)
+    self.note_buffer = []
+    self.current_duration = 0
+
 
 if __name__ == "__main__":
   index = 1

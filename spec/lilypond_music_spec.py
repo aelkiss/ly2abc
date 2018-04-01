@@ -111,7 +111,9 @@ with description('LilypondMusic') as self:
     with context('a change in time signature from 6/8 to 2/2'):
       with before.each:
         self.l.time_signature(TimeSignature(6,8))
+        self.l.bar_manager.pass_time(Fraction(6,8))
         self.l.time_signature(TimeSignature(2,2))
+        self.l.bar_manager.pass_time(Fraction(2,2))
 
       with it('sets the bar manager'):
         expect(self.l.bar_manager.numerator).to(equal(2))
@@ -156,7 +158,7 @@ with description('LilypondMusic') as self:
 
     with context('music_list'):
       with it('outputs a barline before a meter change'):
-        self.l.music_list(ly_snippet("{ c1 \\time 6/8 }"))
+        self.l.music_list(ly_snippet("{ c1 \\time 6/8 c4. c4. }"))
         expect(self.output.all_output()).to(contain("| \nM: 6/8\n"))
 
       with it('outputs a barline marker before a key change'):
@@ -181,6 +183,7 @@ with description('LilypondMusic') as self:
         with before.each:
           self.ly_note = LyNote(Pitch.e,Fraction(1/4))
           self.l.note(self.ly_note)
+          self.l.flush_buffer()
 
         with it('passes time equaling the length of the note'):
           expect(self.l.bar_manager.elapsed_time).to(equal(Fraction(1/4)))
@@ -240,6 +243,7 @@ with description('LilypondMusic') as self:
         with context('with a 8th rest'):
           with before.each:
             self.l.rest(LyRest(Fraction(1/8)))
+            self.l.flush_buffer()
 
           with it('outputs the rest'):
             expect(self.output.items).to(contain('z'))
@@ -258,8 +262,8 @@ with description('LilypondMusic') as self:
             LyRest: lambda rest,_: self.l.bar_manager.pass_time(rest.length())
           }
           self.l.repeat(Repeat('volta',3,[LyRest(1)]),handlers)
-          print(self.output.all_output())
           self.l.alternative([[[],[]]])
+          print(self.output.all_output())
           expect(self.output.all_output()).to(contain("|:  |  [1-2  :|]  [3 "))
           
 

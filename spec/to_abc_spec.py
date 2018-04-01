@@ -51,5 +51,31 @@ M: 4/4
 L: 1/8
 D2 | C2D2 E2F2 | """))
 
+    with it('handles \\ppMark'):
+      output_c_major_snippet("2/2","\\ppMark c4 d e f  \\ppMark g e d c",self.output)
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 2/2
+L: 1/4
+P: A
+CD EF | 
+P: B
+GE DC | """))
 
+    with it('handles \\ppMarkA by outputting the mark before the note'):
+      output_c_major_snippet("2/2","c4^\\ppMarkA d e f  g^\\ppMarkB e d c",self.output)
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 2/2
+L: 1/4
+P: A
+CD EF | 
+P: B
+GE DC | """))
 
+    with it('outputs a repeat marker before a time change'):
+      output_c_major_snippet("4/4","c4 d e f \\time 6/8 \\repeat volta 2 { c8 d e f g a }",self.output)
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 4/4
+L: 1/8
+C2D2 E2F2 |: 
+M: 6/8
+CDE FGA :| """))
