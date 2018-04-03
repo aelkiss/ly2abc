@@ -22,9 +22,13 @@ sharp = Fraction(1,2)
 class FilehandleOutputter:
   def __init__(self,fh):
     self.fh = fh
+    self.last_output = None
 
   def output(self,text):
-    self.fh.write(text)
+    # don't output two linebreaks in a row
+    if text != "\n" or self.last_output[-1] != "\n":
+      self.fh.write(text)
+    self.last_output = text
 
 class NoneOutputter:
   def output(self,text):
@@ -65,7 +69,7 @@ class BarManager:
   def output_after_bar(self,*items):
     # if right after a break, print it, otherwise wait for right after 
     # the next bar
-    if self.broke:
+    if self.broke or self.at_beginning:
       for item in items:
         self.outputter.output(item)
     else:
@@ -395,8 +399,7 @@ class LilypondMusic:
     if(usercommand.name() == 'ppMark'):
       if not self.section: self.section = 'A'
       self.flush_buffer()
-      self.bar_manager.output_breaks(continuation=True)
-      self.outputter.output("P: %s\n" % self.section)
+      self.bar_manager.output_after_bar("\n","P: %s\n" % self.section)
       self.section = chr(ord(self.section) + 1)
     else:
       r = re.match(r'ppMark(\w)',usercommand.name())

@@ -44,6 +44,7 @@ To make overrideable:
 
 BUGS
 
-various things have extra line breaks after P; some part markers are apparently misplaced
+some repeat signs are in the wrong place (see e.g. Egle before D)
+some part signs appear to be offset
 transpose still isn't handled
 
