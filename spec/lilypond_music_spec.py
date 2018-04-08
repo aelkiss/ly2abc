@@ -2,7 +2,7 @@ from mamba import description, context, it
 from expects import expect, equal, contain
 from fractions import Fraction
 
-from ly2abc import LilypondMusic
+from ly2abc.lilypond_music import LilypondMusic
 from spec.ly2abc_spec_helper import *
 
 

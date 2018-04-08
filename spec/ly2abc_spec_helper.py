@@ -1,6 +1,6 @@
 from fractions import Fraction
 
-from ly2abc import flat,natural,sharp
+from ly2abc.note import flat,natural,sharp
 
 import ly.document
 import ly.music

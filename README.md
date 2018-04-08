@@ -48,3 +48,9 @@ some repeat signs are in the wrong place (see e.g. Egle before D)
 some part signs appear to be offset
 transpose still isn't handled
 
+NEXT STEP:
+
+build an output buffer object where all the output initially goes. Output items
+can go before or after a note and can be on their own line or not. It should
+join things into tokens and lines before outputting. The BarManager should tell
+it whether various kinds of breaks are needed.

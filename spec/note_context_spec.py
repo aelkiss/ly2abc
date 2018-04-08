@@ -2,7 +2,7 @@ from mamba import description, context, it
 from expects import expect, equal, contain
 from fractions import Fraction
 
-from ly2abc import NoteContext
+from ly2abc.note import NoteContext
 
 with description('ly2abc.NoteContext') as self:
   with it('can be constructed with number of sharps and a unit length'):

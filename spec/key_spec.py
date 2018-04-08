@@ -2,7 +2,7 @@ from mamba import description, context, it
 from expects import expect, equal, contain
 from fractions import Fraction
 
-from ly2abc import Key
+from ly2abc.note import Key
 from spec.ly2abc_spec_helper import *
 
 with description('Key') as self:
