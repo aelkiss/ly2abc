@@ -44,8 +44,7 @@ class TestOutputter:
     self.items = []
 
   def output(self,text):
-    if text != "\n" or self.items[-1][-1] != "\n":
-      self.items.append(text)
+    self.items.append(text)
 
   def all_output(self):
     return "".join(self.items)

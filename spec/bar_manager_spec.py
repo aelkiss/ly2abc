@@ -3,13 +3,13 @@ from expects import expect, equal, contain
 from fractions import Fraction
 
 from ly2abc.bar_manager import BarManager
-
+from ly2abc.output_buffer import OutputBuffer
 from spec.ly2abc_spec_helper import TestOutputter
 
 with description('BarManager') as self:
   with context('in 6/8 time'):
     def bar_manager(self):
-      return BarManager(6,8,outputter=TestOutputter())
+      return BarManager(6,8,outputter=OutputBuffer(TestOutputter()))
 
     with it('can be constructed'):
       expect(self.bar_manager()).not_to(equal(None))
@@ -97,13 +97,13 @@ with description('BarManager') as self:
         bar_manager.pass_time(Fraction(6,8))
         bar_manager.bar_type = ":|"
         bar_manager.pass_time(Fraction(6,8))
-        expect(bar_manager.outputter.items).to(contain(' :| '))
+        expect(bar_manager.outputter.outputter.items).to(contain(' :| '))
 
       with it('outputs | if no barline overrode it'):
         bar_manager = self.bar_manager()
         bar_manager.pass_time(Fraction(6,8))
         bar_manager.pass_time(Fraction(6,8))
-        expect(bar_manager.outputter.items).to(contain(' | '))
+        expect(bar_manager.outputter.outputter.items).to(contain(' | '))
 
   with context('in 4/4 time'):
     def bar_manager(self):

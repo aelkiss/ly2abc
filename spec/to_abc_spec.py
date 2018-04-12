@@ -3,6 +3,7 @@ from expects import expect, equal, contain
 from fractions import Fraction
 
 from ly2abc.lilypond_music import LilypondMusic
+from ly2abc.output_buffer import OutputBuffer
 from spec.ly2abc_spec_helper import ly_snippet, TestOutputter
 
 def output_c_major_snippet(time,music,outputter):
@@ -11,7 +12,7 @@ def output_c_major_snippet(time,music,outputter):
 
 with description('LilypondMusic') as self:
   with before.each:
-    self.output = TestOutputter()
+    self.output = OutputBuffer(TestOutputter())
     self.l = LilypondMusic(music=None,outputter=self.output)
   with context('to_abc'):
     with it('outputs abc for a snippet with time signature and key signature'):

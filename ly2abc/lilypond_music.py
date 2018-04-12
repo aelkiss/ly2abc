@@ -2,6 +2,7 @@ import ly.music.items
 import re
 import sys
 from ly2abc.note import *
+from ly2abc.output_buffer import OutputBuffer
 from ly2abc.bar_manager import BarManager
 from fractions import Fraction
 
@@ -11,14 +12,12 @@ class FilehandleOutputter:
     self.last_output = None
 
   def output(self,text):
-    # don't output two linebreaks in a row
-    if text != "\n" or self.last_output[-1] != "\n":
-      self.fh.write(text)
+    self.fh.write(text)
     self.last_output = text
 
 class LilypondMusic:
 
-  def __init__(self,music,outputter=FilehandleOutputter(sys.stdout)):
+  def __init__(self,music,outputter=OutputBuffer(FilehandleOutputter(sys.stdout))):
     self.outputter = outputter
     self.note_context = NoteContext()
     self.unit_length = None
@@ -35,9 +34,6 @@ class LilypondMusic:
       for child in node:
         self.traverse(child,handlers)
 
-  def output(self,text):
-    self.outputter.output(text)
-
   def output_abc(self):
     handlers = { 
       ly.music.items.TimeSignature: self.time_signature,
@@ -47,6 +43,7 @@ class LilypondMusic:
     self.traverse(self.music,handlers)
     # finalize bars at the end
     if self.bar_manager: self.bar_manager.output_breaks()
+    self.outputter.flush_buffer()
 
   def time_signature(self,t,_=None):
     numerator = t.numerator()
@@ -55,8 +52,8 @@ class LilypondMusic:
     if self.unit_length == None:
       self.bar_manager = BarManager(numerator,denominator,self.outputter)
       self.unit_length = self.default_unit_length(numerator,denominator)
-      self.output("M: %s\n" % self.bar_manager.time_signature())
-      self.output("L: %s\n" % self.unit_length)
+      self.outputter.output_info_field("M: %s" % self.bar_manager.time_signature())
+      self.outputter.output_info_field("L: %s" % self.unit_length)
       self.note_context.unit_length = self.unit_length
     else:
       # meter change
@@ -66,7 +63,7 @@ class LilypondMusic:
   def key_signature(self,k,_=None):
     key = Key(k.pitch(),k.mode())
     self.note_context.sharps = key.sharps()
-    self.output("K: %s\n" % (key.to_abc()))
+    self.outputter.output_info_field("K: %s" % (key.to_abc()))
 
   def relative(self,r,_=None):
     def note(n,_=None):
@@ -111,13 +108,11 @@ class LilypondMusic:
       
   def alternative(self,a,handlers={}):
     def output_alternative(alt_range,music_list):
-      self.outputter.output(" [%s " % alt_range)
+      self.outputter.output_volta(" [%s " % alt_range)
       self.traverse(music_list,handlers)
+      self.outputter.flush_buffer()
       self.bar_manager.manual_bar(" :|] ")
 
-    # override the ending repeat from the volta, if needed
-    self.bar_manager.bar_type = '|'
-    self.bar_manager.output_breaks()
     for music_list in a:
 
       alt_range = "1"
@@ -134,8 +129,9 @@ class LilypondMusic:
 
       if len(music_list) >= 2:
         # last ending - would be rather odd not to have this
-        self.outputter.output((" [%d ") % alternative)
+        self.outputter.output_volta((" [%d ") % alternative)
         self.traverse(music_list[-1],handlers)
+        self.outputter.flush_buffer()
 
     self.repeat_count = None
 
@@ -151,6 +147,7 @@ class LilypondMusic:
       ly.music.items.TimeSignature: self.time_signature,
       ly.music.items.KeySignature: key_signature,
       ly.music.items.Repeat: self.repeat,
+      ly.music.items.Alternative: self.alternative,
       ly.music.items.Command: self.command,
       ly.music.items.UserCommand: self.usercommand,
       ly.music.items.Partial: self.partial
@@ -163,13 +160,13 @@ class LilypondMusic:
     if(usercommand.name() == 'ppMark'):
       if not self.section: self.section = 'A'
       self.flush_buffer()
-      self.bar_manager.output_after_bar("\n","P: %s\n" % self.section)
+      self.outputter.output_info_field("P: %s" % self.section)
       self.section = chr(ord(self.section) + 1)
     else:
       r = re.match(r'ppMark(\w)',usercommand.name())
       if r: 
         self.bar_manager.output_breaks(continuation=True)
-        self.outputter.output("P: %s\n" % r.group(1))
+        self.outputter.output_info_field("P: %s" % r.group(1))
         self.flush_buffer()
     for n in usercommand:
       self.traverse(usercommand,handlers)
@@ -198,10 +195,8 @@ class LilypondMusic:
 
   def print_note(self,pitch,duration):
     self.flush_buffer()
-    self.note_buffer = [Note(pitch,duration,self.note_context).to_abc()]
+    self.outputter.output_note(Note(pitch,duration,self.note_context).to_abc())
     self.current_duration += duration
-#    self.output(self.note_buffer[0])
-  #        print(f"time so far: {time_so_far}")
 
   def default_unit_length(self,numerator,denominator):
     if Fraction(numerator,denominator) < Fraction(3,4):
@@ -213,7 +208,4 @@ class LilypondMusic:
 
   def flush_buffer(self):
     self.bar_manager.pass_time(self.current_duration)
-    for item in self.note_buffer:
-      self.output(item)
-    self.note_buffer = []
     self.current_duration = 0
