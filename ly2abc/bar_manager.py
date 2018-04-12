@@ -28,22 +28,12 @@ class BarManager:
     # don't output a barline at the start of the piece
     self.bar_type = None
     self.broke = False
-    self.after_bar_items = []
 
   def set_time_signature(self,numerator,denominator):
     self.numerator = numerator
     self.denominator = denominator
     self.elapsed_time = 0
     self.outputter.output_info_field("M: %s" % self.time_signature())
-
-  def output_after_bar(self,*items):
-    # if right after a break, print it, otherwise wait for right after 
-    # the next bar
-    if self.broke or self.at_beginning:
-      for item in items:
-        self.outputter.output_info_field(item)
-    else:
-      self.after_bar_items += items
 
   def pass_time(self,duration):
     if duration == 0: return
@@ -54,17 +44,13 @@ class BarManager:
     self.elapsed_time += duration
     self.broke = False
 
-  def output_breaks(self,continuation=False):
+  def output_breaks(self):
     if self.at_beginning and self.bar_type == None:
       return
 
     self.output_inline_breaks()
 
-    # output a continuation marker if we need to have a line break e.g. for a
-    # directive but wouldn't otherwise have a line break
-
-    if self.line_break() or continuation:
-      self.outputter.output_line_break()
+    if self.line_break(): self.outputter.output_line_break()
 
   def output_inline_breaks(self):
     if self.broke:
@@ -73,9 +59,6 @@ class BarManager:
     if self.bar_line():
       self.outputter.output_barline(" %s " % (self.bar_type))
       self.bar_type = "|"
-      for item in self.after_bar_items:
-        self.outputter.output_info_field(item)
-      self.after_bar_items = []
       self.broke = True
     elif self.beam_break():
       self.outputter.output_beam_break()

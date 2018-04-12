@@ -138,7 +138,6 @@ class LilypondMusic:
   def music_list(self,m,_=None):
     def key_signature(k,handlers=None):
       self.flush_buffer()
-      self.bar_manager.output_breaks(continuation=True)
       return self.key_signature(k,handlers)
 
     handlers = {
@@ -165,7 +164,6 @@ class LilypondMusic:
     else:
       r = re.match(r'ppMark(\w)',usercommand.name())
       if r: 
-        self.bar_manager.output_breaks(continuation=True)
         self.outputter.output_info_field("P: %s" % r.group(1))
         self.flush_buffer()
     for n in usercommand:
