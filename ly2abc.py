@@ -4,7 +4,8 @@ import ly.music.items
 import sys
 import re
 import pdb
-from ly2abc.lilypond_music import LilypondMusic
+from ly2abc.lilypond_music import LilypondMusic, FilehandleOutputter
+from ly2abc.output_buffer import OutputBuffer
 
 # key signature --> find in global
 # time signature --> find in global
@@ -47,10 +48,11 @@ if __name__ == "__main__":
         abc_field = header_fields[a.name()]
         print(f"{abc_field}: {a.value().plaintext()}")
 
-    l = LilypondMusic(m)
+    outputter = OutputBuffer(FilehandleOutputter(sys.stdout))
+    l = LilypondMusic(m,outputter)
     l.output_abc()
     # XXX fixme
-    l.outputter.reify()
+    outputter.reify()
 
     print()
     print()
