@@ -47,7 +47,10 @@ if __name__ == "__main__":
         abc_field = header_fields[a.name()]
         print(f"{abc_field}: {a.value().plaintext()}")
 
-    LilypondMusic(m).output_abc()
+    l = LilypondMusic(m)
+    l.output_abc()
+    # XXX fixme
+    l.outputter.reify()
 
     print()
     print()

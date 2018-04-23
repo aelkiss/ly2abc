@@ -42,10 +42,18 @@ Pitch.bf = Pitch(6,flat,1)
 class TestOutputter:
   def __init__(self):
     self.items = []
+    self.buffers = []
 
   def output(self,text):
     self.items.append(text)
 
-  def all_output(self):
+  def reify(self):
+    for buffer in self.buffers:
+      buffer.print_buffer()
     return "".join(self.items)
 
+  def all_output(self):
+    return self.reify()
+
+  def save_buffer(self,buffer):
+    self.buffers.append(buffer)

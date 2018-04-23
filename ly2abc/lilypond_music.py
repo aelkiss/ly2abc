@@ -9,11 +9,17 @@ from fractions import Fraction
 class FilehandleOutputter:
   def __init__(self,fh):
     self.fh = fh
-    self.last_output = None
+    self.buffers = []
 
   def output(self,text):
     self.fh.write(text)
-    self.last_output = text
+
+  def reify(self):
+    for buffer in self.buffers:
+      buffer.print_buffer()
+
+  def save_buffer(self,buffer):
+    self.buffers.append(buffer)
 
 class LilypondMusic:
 
@@ -87,7 +93,7 @@ class LilypondMusic:
 
   def partial(self,p,_=None):
     duration = p.partial_length()
-    self.bar_manager.pass_time(-duration)
+    self.outputter = self.bar_manager.pass_time(-duration)
 
   def rest(self,r,_=None):
     duration = r.length()
@@ -157,7 +163,7 @@ class LilypondMusic:
     else:
       r = re.match(r'ppMark(\w)',usercommand.name())
       if r: 
-        self.outputter.output_info_field("P: %s" % r.group(1))
+        self.outputter.previous.output_info_field("P: %s" % r.group(1))
     for n in usercommand:
       self.traverse(usercommand,handlers)
 
@@ -198,5 +204,5 @@ class LilypondMusic:
       return Fraction(1,8)
 
   def pass_time(self):
-    self.bar_manager.pass_time(self.old_duration)
+    self.outputter = self.bar_manager.pass_time(self.old_duration)
     self.old_duration = 0

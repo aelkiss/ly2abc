@@ -115,9 +115,9 @@ with description('LilypondMusic') as self:
     with context('a change in time signature from 6/8 to 2/2'):
       with before.each:
         self.l.time_signature(TimeSignature(6,8))
-        self.l.bar_manager.pass_time(Fraction(6,8))
+        self.l.ouputter = self.l.bar_manager.pass_time(Fraction(6,8))
         self.l.time_signature(TimeSignature(2,2))
-        self.l.bar_manager.pass_time(Fraction(2,2))
+        self.l.ouputter = self.l.bar_manager.pass_time(Fraction(2,2))
 
       with it('sets the bar manager'):
         expect(self.l.bar_manager.numerator).to(equal(2))
@@ -194,6 +194,7 @@ with description('LilypondMusic') as self:
           self.ly_note = LyNote(Pitch.e,Fraction(1/4))
           self.l.note(self.ly_note)
           self.l.pass_time()
+          self.output.reify()
 
         with it('passes time equaling the length of the note'):
           expect(self.l.bar_manager.elapsed_time).to(equal(Fraction(1/4)))
@@ -233,21 +234,22 @@ with description('LilypondMusic') as self:
           expect(self.output.outputter.items[-1]).to(equal(' | '))
 
         with it('prevents double-printing barlines'):
-          self.l.bar_manager.pass_time(1)
+          self.l.ouputter = self.l.bar_manager.pass_time(1)
           self.l.command(LyCommand("\\bar",siblings=[LyString('||')]))
           self.l.pass_time()
+          self.output.reify()
           expect(self.output.outputter.items[-1]).to(equal(" || "))
 
         with it('prints barlines in the middle of a measure'):
-          self.l.bar_manager.pass_time(1/4)
+          self.l.ouputter = self.l.bar_manager.pass_time(1/4)
           self.l.command(LyCommand("\\bar",siblings=[LyString('||')]))
-          self.l.bar_manager.pass_time(3/4)
+          self.l.ouputter = self.l.bar_manager.pass_time(3/4)
           self.l.pass_time()
           expect(self.output.all_output()).to(contain("||  | "))
 
         with it('handles repeat barlines'):
           self.l.command(LyCommand("\\bar",siblings=[LyString('.|:')]))
-          self.l.bar_manager.pass_time(1)
+          self.l.ouputter = self.l.bar_manager.pass_time(1)
           self.l.command(LyCommand("\\bar",siblings=[LyString(':|.')]))
           self.l.pass_time()
           expect(self.output.all_output()).to(contain("|:  :|"))
@@ -258,6 +260,7 @@ with description('LilypondMusic') as self:
           with before.each:
             self.l.rest(LyRest(Fraction(1/8)))
             self.l.pass_time()
+            self.output.reify()
 
           with it('outputs the rest'):
             expect(self.output.outputter.items).to(contain('z'))
@@ -285,12 +288,13 @@ with description('LilypondMusic') as self:
         with context('with a volta repeat'):
           with before.each:
             def str_handler(string,_):
-              self.l.bar_manager.pass_time(Fraction(1,2))
+              self.l.ouputter = self.l.bar_manager.pass_time(Fraction(1,2))
               self.l.outputter.output_test(string)
             handlers = { str: lambda x,_: str_handler(x,None) }
 
             self.l.repeat(Repeat('volta',2,["some","thing"]), handlers)
             self.l.pass_time()
+            self.output.reify()
 
           with it('first outputs an opening repeat'):
             expect(self.output.outputter.items).to(contain(' |: '))
@@ -315,7 +319,7 @@ with description('LilypondMusic') as self:
 
         with it('combines :| and |: if needed'):
           def str_handler(string,_):
-            self.l.bar_manager.pass_time(Fraction(1,2))
+            self.l.ouputter = self.l.bar_manager.pass_time(Fraction(1,2))
             self.l.outputter.output_test(string)
           handlers = { str: lambda x,_: str_handler(x,None) }
 

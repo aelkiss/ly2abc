@@ -5,6 +5,9 @@ class NoneOutputter:
   def print_buffer(self):
     pass
 
+  def next(self):
+    return self
+
   def output_barline(self,_):
     pass
 
@@ -57,8 +60,9 @@ class BarManager:
     self.elapsed_time += duration
     self.output_breaks()
     self.apply_new_time_signature()
-    self.outputter.print_buffer()
+    self.outputter = self.outputter.next()
     self.broke = False
+    return self.outputter
 
   def output_breaks(self):
     if self.at_beginning and self.bar_type == None:

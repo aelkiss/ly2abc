@@ -1,5 +1,5 @@
 from mamba import description, context, it
-from expects import expect, equal, contain
+from expects import expect, equal, contain, raise_error
 from fractions import Fraction
 
 from ly2abc.bar_manager import BarManager
@@ -15,7 +15,7 @@ with description('BarManager') as self:
       expect(self.bar_manager()).not_to(equal(None))
 
     with it('can pass time'):
-      expect(self.bar_manager().pass_time(Fraction(1/8))).to(equal(None))
+      expect(lambda: self.bar_manager().pass_time(Fraction(1/8))).not_to(raise_error)
 
     with description('line_break'):
 
@@ -97,12 +97,14 @@ with description('BarManager') as self:
         bar_manager.pass_time(Fraction(6,8))
         bar_manager.bar_type = ":|"
         bar_manager.pass_time(Fraction(6,8))
+        bar_manager.outputter.all_output()
         expect(bar_manager.outputter.outputter.items).to(contain(' :| '))
 
       with it('outputs | if no barline overrode it'):
         bar_manager = self.bar_manager()
         bar_manager.pass_time(Fraction(6,8))
         bar_manager.pass_time(Fraction(6,8))
+        bar_manager.outputter.all_output()
         expect(bar_manager.outputter.outputter.items).to(contain(' | '))
 
   with context('in 4/4 time'):

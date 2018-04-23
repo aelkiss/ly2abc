@@ -6,13 +6,15 @@
 # use previous buffer for note postfix stuff
 
 class OutputBuffer:
-  def __init__(self, outputter, at_beginning = True):
+  def __init__(self, outputter, at_beginning = True, previous = None):
     self.outputter = outputter
     self.at_beginning = at_beginning
+    self.previous = previous
     self.__reset()
 
   def next(self):
-    return OutputBuffer(self.outputter,at_beginning = False)
+    self.outputter.save_buffer(self)
+    return OutputBuffer(self.outputter,at_beginning = False, previous = self)
 
   def output_test(self, stuff):
     self.outputter.output(stuff)
@@ -28,7 +30,10 @@ class OutputBuffer:
     self.barline = text
 
   def all_output(self):
-    return self.outputter.all_output()
+    return self.reify()
+
+  def reify(self):
+    return self.outputter.reify()
 
   def output_line_break(self):
     self.line_break = True
@@ -62,8 +67,6 @@ class OutputBuffer:
     if self.volta_bracket: self.__output(self.volta_bracket)
 
     self.at_beginning = False
-    self.__reset()
-    return self.next()
 
   def __reset(self):
     self.note_output = None
