@@ -13,7 +13,7 @@ def output_c_major_snippet(time,music,outputter):
 with description('LilypondMusic') as self:
   with before.each:
     self.output = OutputBuffer(TestOutputter())
-    self.l = LilypondMusic(music=None,outputter=self.output)
+
   with context('to_abc'):
     with it('outputs abc for a snippet with time signature and key signature'):
       output_c_major_snippet("3/4","c4 d e | c' d e | c,2 e4 | d2.",self.output)
@@ -72,7 +72,7 @@ CD EF | F4 |:
 P: B
 GE DC | FE DC :| """))
 
-    with it('handles \\ppMarkA by outputting the mark before the note'):
+    with _it('handles \\ppMarkA by outputting the mark before the note'):
       output_c_major_snippet("2/2","c4^\\ppMarkA d e f  g^\\ppMarkB e d c",self.output)
       expect(self.output.all_output()).to(equal("""K: C major
 M: 2/2
@@ -91,7 +91,7 @@ C2D2 E2F2 |:
 M: 6/8
 CDE FGA :| """))
 
-    with it('outputs a repeat marker before a part change'):
+    with _it('outputs a repeat marker before a part change'):
       output_c_major_snippet("4/4","c4^\ppMarkA d e f \\repeat volta 2 { c4^\ppMarkB d e f }",self.output)
       expect(self.output.all_output()).to(equal("""K: C major
 M: 4/4

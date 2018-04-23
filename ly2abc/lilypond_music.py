@@ -24,9 +24,9 @@ class LilypondMusic:
     self.music = music
     self.section = None
     self.note_buffer = []
-    self.current_duration = 0
+    self.old_duration = 0
 
-  def traverse(self,node,handlers):
+  def traverse(self,node,handlers,i=0):
     method = handlers.get(type(node))
     if method: 
       method(node,handlers)
@@ -41,9 +41,9 @@ class LilypondMusic:
       ly.music.items.Relative: self.relative,
     }
     self.traverse(self.music,handlers)
-    # finalize bars at the end
+
     if self.bar_manager: self.bar_manager.output_breaks()
-    self.outputter.flush_buffer()
+    self.pass_time()
 
   def time_signature(self,t,_=None):
     numerator = t.numerator()
@@ -57,7 +57,6 @@ class LilypondMusic:
       self.note_context.unit_length = self.unit_length
     else:
       # meter change
-      self.flush_buffer()
       self.bar_manager.set_time_signature(numerator,denominator)
 
   def key_signature(self,k,_=None):
@@ -77,9 +76,12 @@ class LilypondMusic:
     self.traverse(r,handlers)
 
   def note(self,n,_=None):
+#    import pdb
+#    pdb.set_trace()
     duration = n.length()
     pitch = n.pitch.copy()
     pitch.makeAbsolute(self.last_pitch)
+    # check for postfix
     self.print_note(pitch,duration)
     self.last_pitch = pitch
 
@@ -98,7 +100,6 @@ class LilypondMusic:
 
       self.repeat_count = r.repeat_count()
       for n in r: self.traverse(n,handlers)
-      self.flush_buffer()
       self.bar_manager.bar_type = ":|"
     elif(r.specifier() == 'unfold'):
       for i in range(0,r.repeat_count()):
@@ -110,7 +111,6 @@ class LilypondMusic:
     def output_alternative(alt_range,music_list):
       self.outputter.output_volta(" [%s " % alt_range)
       self.traverse(music_list,handlers)
-      self.outputter.flush_buffer()
       self.bar_manager.manual_bar(" :|] ")
 
     for music_list in a:
@@ -131,20 +131,15 @@ class LilypondMusic:
         # last ending - would be rather odd not to have this
         self.outputter.output_volta((" [%d ") % alternative)
         self.traverse(music_list[-1],handlers)
-        self.outputter.flush_buffer()
 
     self.repeat_count = None
 
   def music_list(self,m,_=None):
-    def key_signature(k,handlers=None):
-      self.flush_buffer()
-      return self.key_signature(k,handlers)
-
     handlers = {
       ly.music.items.Note: self.note, 
       ly.music.items.Rest: self.rest,
       ly.music.items.TimeSignature: self.time_signature,
-      ly.music.items.KeySignature: key_signature,
+      ly.music.items.KeySignature: self.key_signature,
       ly.music.items.Repeat: self.repeat,
       ly.music.items.Alternative: self.alternative,
       ly.music.items.Command: self.command,
@@ -153,19 +148,16 @@ class LilypondMusic:
     }
 
     self.traverse(m,handlers)
-    self.flush_buffer()
 
   def usercommand(self,usercommand,handlers):
     if(usercommand.name() == 'ppMark'):
       if not self.section: self.section = 'A'
-      self.flush_buffer()
       self.outputter.output_info_field("P: %s" % self.section)
       self.section = chr(ord(self.section) + 1)
     else:
       r = re.match(r'ppMark(\w)',usercommand.name())
       if r: 
         self.outputter.output_info_field("P: %s" % r.group(1))
-        self.flush_buffer()
     for n in usercommand:
       self.traverse(usercommand,handlers)
 
@@ -186,15 +178,16 @@ class LilypondMusic:
           ":|]": " :| ",
           ":|.": " :| ",
           }
-      self.flush_buffer()
       self.bar_manager.manual_bar((bars.get(m.next_sibling().plaintext(),' | ')))
         
   # private
 
   def print_note(self,pitch,duration):
-    self.flush_buffer()
+#    import pdb
+#    pdb.set_trace()
+    self.pass_time()
     self.outputter.output_note(Note(pitch,duration,self.note_context).to_abc())
-    self.current_duration += duration
+    self.old_duration += duration
 
   def default_unit_length(self,numerator,denominator):
     if Fraction(numerator,denominator) < Fraction(3,4):
@@ -204,6 +197,6 @@ class LilypondMusic:
     else:
       return Fraction(1,8)
 
-  def flush_buffer(self):
-    self.bar_manager.pass_time(self.current_duration)
-    self.current_duration = 0
+  def pass_time(self):
+    self.bar_manager.pass_time(self.old_duration)
+    self.old_duration = 0

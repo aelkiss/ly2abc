@@ -61,7 +61,7 @@ with description('LilypondMusic') as self:
     with context('in 6/8'):
       with before.each:
         self.l.time_signature(TimeSignature(6,8))
-        self.l.outputter.flush_buffer()
+        self.l.outputter.print_buffer()
 
       with it('sets the bar manager'):
         expect(self.l.bar_manager.numerator).to(equal(6))
@@ -79,7 +79,7 @@ with description('LilypondMusic') as self:
     with context('in 2/2'):
       with before.each:
         self.l.time_signature(TimeSignature(2,2))
-        self.l.outputter.flush_buffer()
+        self.l.outputter.print_buffer()
 
       with it('sets the bar manager'):
         expect(self.l.bar_manager.numerator).to(equal(2))
@@ -97,7 +97,7 @@ with description('LilypondMusic') as self:
     with context('in 2/4'):
       with before.each:
         self.l.time_signature(TimeSignature(2,4))
-        self.l.outputter.flush_buffer()
+        self.l.outputter.print_buffer()
 
       with it('sets the bar manager'):
         expect(self.l.bar_manager.numerator).to(equal(2))
@@ -136,7 +136,7 @@ with description('LilypondMusic') as self:
     with context('in C major'):
       with before.each:
         self.l.key_signature(KeySignature(Pitch.c,'major'))
-        self.l.outputter.flush_buffer()
+        self.l.outputter.print_buffer()
 
       with it('sets the key in the note context'):
         expect(self.l.note_context.sharps).to(equal(0))
@@ -147,7 +147,7 @@ with description('LilypondMusic') as self:
     with context('in F# minor'):
       with before.each:
         self.l.key_signature(KeySignature(Pitch.fs,'minor'))
-        self.l.outputter.flush_buffer()
+        self.l.outputter.print_buffer()
 
       with it('sets the key in the note context'):
         expect(self.l.note_context.sharps).to(equal(3))
@@ -165,18 +165,22 @@ with description('LilypondMusic') as self:
     with context('music_list'):
       with it('outputs a barline before a meter change'):
         self.l.music_list(ly_snippet("{ c1 \\time 6/8 c4. c4. }"))
+        self.l.pass_time()
         expect(self.output.all_output()).to(contain("| \nM: 6/8\n"))
 
       with it('outputs a barline marker before a key change'):
         self.l.music_list(ly_snippet("{ c1 \\key ees\\dorian c1 }"))
-        expect(self.output.all_output()).to(contain('| \nK: Eb dorian\n'))
+        self.l.pass_time()
+        expect(self.output.all_output()).to(contain('C8 | \nK: Eb dorian\n'))
 
       with it('outputs notes inside it'):
         self.l.music_list(ly_snippet("{ c8 d e }"))
+        self.l.pass_time()
         expect(self.output.all_output()).to(contain('CDE'))
     
       with it('handles relative octave'):
         self.l.music_list(ly_snippet("{ c8 c' d}"))
+        self.l.pass_time()
         expect(self.output.all_output()).to(contain('Ccd'))
 
     with context('partial'):
@@ -189,7 +193,7 @@ with description('LilypondMusic') as self:
         with before.each:
           self.ly_note = LyNote(Pitch.e,Fraction(1/4))
           self.l.note(self.ly_note)
-          self.l.flush_buffer()
+          self.l.pass_time()
 
         with it('passes time equaling the length of the note'):
           expect(self.l.bar_manager.elapsed_time).to(equal(Fraction(1/4)))
@@ -206,7 +210,7 @@ with description('LilypondMusic') as self:
       with description('barline'):
         def barline(self,lilypond_music,text):
           lilypond_music.command(LyCommand("\\bar",siblings=[LyString(text)]))
-          lilypond_music.outputter.flush_buffer()
+          lilypond_music.outputter.print_buffer()
 
         with it('outputs the bar immediately'):
           self.barline(self.l,'||')
@@ -231,24 +235,21 @@ with description('LilypondMusic') as self:
         with it('prevents double-printing barlines'):
           self.l.bar_manager.pass_time(1)
           self.l.command(LyCommand("\\bar",siblings=[LyString('||')]))
-          self.l.bar_manager.output_breaks()
-          self.l.outputter.flush_buffer()
+          self.l.pass_time()
           expect(self.output.outputter.items[-1]).to(equal(" || "))
 
         with it('prints barlines in the middle of a measure'):
           self.l.bar_manager.pass_time(1/4)
           self.l.command(LyCommand("\\bar",siblings=[LyString('||')]))
           self.l.bar_manager.pass_time(3/4)
-          self.l.bar_manager.output_breaks()
-          self.l.outputter.flush_buffer()
+          self.l.pass_time()
           expect(self.output.all_output()).to(contain("||  | "))
 
         with it('handles repeat barlines'):
           self.l.command(LyCommand("\\bar",siblings=[LyString('.|:')]))
           self.l.bar_manager.pass_time(1)
           self.l.command(LyCommand("\\bar",siblings=[LyString(':|.')]))
-          self.l.bar_manager.output_breaks()
-          self.l.outputter.flush_buffer()
+          self.l.pass_time()
           expect(self.output.all_output()).to(contain("|:  :|"))
 
                     
@@ -256,7 +257,7 @@ with description('LilypondMusic') as self:
         with context('with a 8th rest'):
           with before.each:
             self.l.rest(LyRest(Fraction(1/8)))
-            self.l.flush_buffer()
+            self.l.pass_time()
 
           with it('outputs the rest'):
             expect(self.output.outputter.items).to(contain('z'))
@@ -267,15 +268,13 @@ with description('LilypondMusic') as self:
       with description('alternative'):
         with it("prints the first and second endings"):
           self.l.music_list(ly_snippet("{ \\repeat volta 2 { c1 } \\alternative { { d1 } { e1 } } }"))
-          self.l.bar_manager.output_breaks()
-          self.l.flush_buffer()
+          self.l.pass_time()
           expect(self.output.all_output()).to(contain("[1 D8 :|]  [2 E8"))
 
         with it("in a \\repeat volta 3, prints endings 1-2 on the first alternative"):
           self.l.music_list(ly_snippet("{ \\repeat volta 3 { c1 } \\alternative { { d1 } { e1 } } }"))
-          self.l.bar_manager.output_breaks()
-          self.l.flush_buffer()
-          expect(self.output.all_output()).to(contain("|: C8 [1-2 D8 :|]  [3 E8 "))
+          self.l.pass_time()
+          expect(self.output.all_output()).to(contain("|: C8 |  [1-2 D8 :|]  [3 E8 "))
           
 
       with description('repeat'):
@@ -291,8 +290,7 @@ with description('LilypondMusic') as self:
             handlers = { str: lambda x,_: str_handler(x,None) }
 
             self.l.repeat(Repeat('volta',2,["some","thing"]), handlers)
-            self.l.bar_manager.output_breaks()
-            self.l.outputter.flush_buffer()
+            self.l.pass_time()
 
           with it('first outputs an opening repeat'):
             expect(self.output.outputter.items).to(contain(' |: '))
@@ -321,11 +319,9 @@ with description('LilypondMusic') as self:
             self.l.outputter.output_test(string)
           handlers = { str: lambda x,_: str_handler(x,None) }
 
-          self.l.repeat(Repeat('volta',2,["some","thing"]),handlers)
-          self.l.repeat(Repeat('volta',2,["other","thing"]),handlers)
-          self.l.bar_manager.output_breaks()
-          self.l.outputter.flush_buffer()
-          expect(self.output.all_output()).to(contain('|: some thing :: other thing :|'))
+          self.l.music_list(ly_snippet("{ \\repeat volta 2 { c2 c } \\repeat volta 2 { c2 c } }"))
+          self.l.pass_time()
+          expect(self.output.all_output()).to(contain('|: C4 C4 :: C4 C4 :|'))
 
   with context('traverse'):
     with it('calls the specified handler for each item in the node'):

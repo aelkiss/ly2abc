@@ -46,11 +46,11 @@ BUGS
 
 some repeat signs are in the wrong place (see e.g. Egle before D)
 some part signs appear to be offset
+some repeat signs are floating in the header
+some extraneous double-newlines in header
 transpose still isn't handled
+ppMarkA doesn't work
 
-NEXT STEP:
+NEXT STEP
 
-build an output buffer object where all the output initially goes. Output items
-can go before or after a note and can be on their own line or not. It should
-join things into tokens and lines before outputting. The BarManager should tell
-it whether various kinds of breaks are needed.
+construct an array of output buffers that keeps track of what time they're for

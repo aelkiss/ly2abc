@@ -1,8 +1,18 @@
+# NEXT:
+
+# split into BeginningOutputBuffer and OutputBuffer
+# remove reset - just construct a new one
+# save a reference to the previous output buffer
+# use previous buffer for note postfix stuff
+
 class OutputBuffer:
-  def __init__(self, outputter):
+  def __init__(self, outputter, at_beginning = True):
     self.outputter = outputter
-    self.at_beginning = True
+    self.at_beginning = at_beginning
     self.__reset()
+
+  def next(self):
+    return OutputBuffer(self.outputter,at_beginning = False)
 
   def output_test(self, stuff):
     self.outputter.output(stuff)
@@ -32,14 +42,16 @@ class OutputBuffer:
     else:
       self.note_output = item
 
-  def flush_buffer(self):
-
+  def print_buffer(self):
+#    import pdb
+#    pdb.set_trace()
     if self.at_beginning:
       for item in self.info_fields:
         self.__output(item)
         self.__output("\n")
       if self.barline: self.__output(self.barline)
     else:
+      if self.note_output: self.__output(self.note_output)
       if self.beam_break: self.__output(" ")
       if self.barline: self.__output(self.barline)
       if self.line_break: self.__output("\n")
@@ -47,11 +59,11 @@ class OutputBuffer:
         self.__output(item)
         self.__output("\n")
 
-    if self.note_output: self.__output(self.note_output)
     if self.volta_bracket: self.__output(self.volta_bracket)
 
     self.at_beginning = False
     self.__reset()
+    return self.next()
 
   def __reset(self):
     self.note_output = None
