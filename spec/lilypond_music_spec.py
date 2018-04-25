@@ -162,7 +162,6 @@ with description('LilypondMusic') as self:
       self.base_pitch = Pitch.c
       self.l.last_pitch = self.base_pitch
 
-    with context('music_list'):
       with it('outputs a barline before a meter change'):
         self.l.music_list(ly_snippet("{ c1 \\time 6/8 c4. c4. }"))
         self.l.pass_time()

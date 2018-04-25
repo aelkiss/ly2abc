@@ -49,7 +49,7 @@ if __name__ == "__main__":
         print(f"{abc_field}: {a.value().plaintext()}")
 
     outputter = OutputBuffer(FilehandleOutputter(sys.stdout))
-    l = LilypondMusic(m,outputter)
+    l = LilypondMusic(m,outputter,output_assigns=['global','ppMusicOne'])
     l.output_abc()
     # XXX fixme
     outputter.reify()

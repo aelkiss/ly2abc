@@ -5,10 +5,15 @@ flat = Fraction(-1,2)
 natural = 0
 sharp = Fraction(1,2)
 
+class IdentityTransposer:
+  def transpose(self,pitch):
+    return pitch
+
 class NoteContext:
   def __init__(self,sharps=0,unit_length=Fraction(1/8)):
     self.sharps = sharps
     self.unit_length = unit_length
+    self.transposer = IdentityTransposer()
 
 class Key:
   alters = { flat: "b",

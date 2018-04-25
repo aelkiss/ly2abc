@@ -21,6 +21,7 @@ LilyPond for the following features of the ABC specification:
 * Clefs other than treble clef
 * Multi-measure rests
 * Modified or explicit key signatures
+* Suggested drone (from ppile markup)
 
 No support is planned for:
 
@@ -32,9 +33,6 @@ On the LilyPond side, it does not support:
 * Volta repeats that are not on a barline boundary
 * Explicit beaming
 * Explicit line breaks
-* Music outside a `ppMusicOne` assign
-* Key signatures or time signatures outside a `global` assign
-* Transposed music sections
 * Any feature of LilyPond that isn't supported by ABC
 
 To make overrideable:
@@ -44,13 +42,5 @@ To make overrideable:
 
 BUGS
 
-some repeat signs are in the wrong place (see e.g. Egle before D)
-some part signs appear to be offset
-some repeat signs are floating in the header
-some extraneous double-newlines in header
-transpose still isn't handled
-ppMarkA doesn't work
-
-NEXT STEP
-
-construct an array of output buffers that keeps track of what time they're for
+internal \partial not handled well
+missing closing repeat on tamrett, ly bens

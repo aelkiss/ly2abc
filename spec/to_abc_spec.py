@@ -6,6 +6,8 @@ from ly2abc.lilypond_music import LilypondMusic
 from ly2abc.output_buffer import OutputBuffer
 from spec.ly2abc_spec_helper import ly_snippet, TestOutputter
 
+import ly.music
+
 def output_c_major_snippet(time,music,outputter):
   snippet = ly_snippet("{ \\key c \\major \\time %s \\relative c' { %s } }" % (time,music))
   LilypondMusic(music=snippet,outputter=outputter).output_abc()
@@ -118,3 +120,35 @@ M: 6/4
 C2D2E2 F2G2A2 | 
 M: 6/8
 AGF FGA |] """))
+
+    with it('outputs all assigns if none are specified'):
+      snippet = ly.music.document(ly.document.Document("global = { \\key c \\major \\time 4/4 } \nfoo = \\relative c' { c1 } \nbar = \\relative c' { d1 }"))
+      LilypondMusic(music=snippet,outputter=self.output).output_abc()
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 4/4
+L: 1/8
+C8 | D8 | """))
+
+    with it('outputs only the given assigns if some are specified'):
+      snippet = ly.music.document(ly.document.Document("global = { \\key c \\major \\time 4/4 } \nfoo = \\relative c' { c1 } \nbar = \\relative c' { d1 }\nbaz = \\relative c' { e1 }"))
+      LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 4/4
+L: 1/8
+C8 | E8 | """))
+
+    with it('handles transposition'):
+      snippet = ly.music.document(ly.document.Document("\\key c \\major \\time 4/4 \\transpose c d \\relative c' { c4 d e f } \\relative c' { f e d c }"))
+      LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 4/4
+L: 1/8
+D2E2 ^F2G2 | F2E2 D2C2 | """))
+
+    with it('handles transposition with octave changes in the music'):
+      snippet = ly.music.document(ly.document.Document("\\key c \\major \\time 4/4 \\transpose c d \\relative c' { f4 c' }"))
+      LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
+      expect(self.output.all_output()).to(equal("""K: C major
+M: 4/4
+L: 1/8
+G2d2 """))

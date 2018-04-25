@@ -2,6 +2,7 @@ import ly.music.items
 import re
 import sys
 from ly2abc.note import *
+from ly.pitch import transpose
 from ly2abc.output_buffer import OutputBuffer
 from ly2abc.bar_manager import BarManager
 from fractions import Fraction
@@ -23,7 +24,7 @@ class FilehandleOutputter:
 
 class LilypondMusic:
 
-  def __init__(self,music,outputter=OutputBuffer(FilehandleOutputter(sys.stdout))):
+  def __init__(self,music,outputter=OutputBuffer(FilehandleOutputter(sys.stdout)),output_assigns=None):
     self.outputter = outputter
     self.note_context = NoteContext()
     self.unit_length = None
@@ -31,6 +32,7 @@ class LilypondMusic:
     self.section = None
     self.note_buffer = []
     self.old_duration = 0
+    self.output_assigns = output_assigns
 
   def traverse(self,node,handlers,i=0):
     method = handlers.get(type(node))
@@ -45,6 +47,8 @@ class LilypondMusic:
       ly.music.items.TimeSignature: self.time_signature,
       ly.music.items.KeySignature: self.key_signature,
       ly.music.items.Relative: self.relative,
+      ly.music.items.Assignment: self.assign,
+      ly.music.items.Transpose: self.transpose,
     }
     self.traverse(self.music,handlers)
 
@@ -66,9 +70,24 @@ class LilypondMusic:
       self.bar_manager.set_time_signature(numerator,denominator)
 
   def key_signature(self,k,_=None):
-    key = Key(k.pitch(),k.mode())
+    key = Key(self.note_context.transposer.transpose(k.pitch()),k.mode())
     self.note_context.sharps = key.sharps()
     self.outputter.output_info_field("K: %s" % (key.to_abc()))
+
+
+  def transpose(self,node,handlers):
+    old_transposer = self.note_context.transposer
+    self.note_context.transposer = ly.pitch.transpose.Transposer(node[0].pitch,node[1].pitch)
+#    import pdb
+#    pdb.set_trace()
+    for child in node[2:]:
+      self.traverse(child,handlers)
+    self.note_context.transposer = old_transposer
+
+  def assign(self,node,handlers):
+    if self.output_assigns == None or node.name() in self.output_assigns:
+      for child in node:
+        self.traverse(child,handlers)
 
   def relative(self,r,_=None):
     def note(n,_=None):
@@ -77,19 +96,19 @@ class LilypondMusic:
     handlers = {
       ly.music.items.Note: note,
       ly.music.items.MusicList: self.music_list,
+      ly.music.items.Transpose: self.transpose,
     }
 
     self.traverse(r,handlers)
 
   def note(self,n,_=None):
-#    import pdb
-#    pdb.set_trace()
     duration = n.length()
     pitch = n.pitch.copy()
     pitch.makeAbsolute(self.last_pitch)
+    self.last_pitch = pitch.copy()
+    self.note_context.transposer.transpose(pitch)
     # check for postfix
     self.print_note(pitch,duration)
-    self.last_pitch = pitch
 
   def partial(self,p,_=None):
     duration = p.partial_length()
@@ -150,7 +169,8 @@ class LilypondMusic:
       ly.music.items.Alternative: self.alternative,
       ly.music.items.Command: self.command,
       ly.music.items.UserCommand: self.usercommand,
-      ly.music.items.Partial: self.partial
+      ly.music.items.Partial: self.partial,
+      ly.music.items.Transpose: self.transpose,
     }
 
     self.traverse(m,handlers)
