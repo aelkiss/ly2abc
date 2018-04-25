@@ -8,8 +8,7 @@ Usage:
 This is heavily a work in progress. It does not yet handle conversion from
 LilyPond for the following features of the ABC specification:
 
-* Ties or slurs
-* Section markers
+* Section markers via \mark
 * Chords
 * Tuplets
 * Annotations

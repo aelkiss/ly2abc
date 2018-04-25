@@ -20,6 +20,7 @@ from ly2abc.output_buffer import OutputBuffer
 header_fields = { 
     'title': 'T',
     'subtitle': 'T',
+    'subsubtitle': 'T',
     'poet': 'C',
     'composer': 'C',
     'meter': 'P',

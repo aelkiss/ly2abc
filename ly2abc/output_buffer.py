@@ -29,6 +29,9 @@ class OutputBuffer:
   def output_barline(self, text):
     self.barline = text
 
+  def output_tie(self):
+    self.tie = True
+
   def all_output(self):
     return self.reify()
 
@@ -57,6 +60,7 @@ class OutputBuffer:
       if self.barline: self.__output(self.barline)
     else:
       if self.note_output: self.__output(self.note_output)
+      if self.tie: self.__output("-")
       if self.beam_break: self.__output(" ")
       if self.barline: self.__output(self.barline)
       if self.line_break: self.__output("\n")
@@ -75,6 +79,7 @@ class OutputBuffer:
     self.info_fields = []
     self.barline = None
     self.volta_bracket = None
+    self.tie = None
 
   def __output(self, stuff):
     self.outputter.output(stuff)

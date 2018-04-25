@@ -110,6 +110,9 @@ class LilypondMusic:
     # check for postfix
     self.print_note(pitch,duration)
 
+  def tie(self,n,_=None):
+    self.outputter.output_tie()
+
   def partial(self,p,_=None):
     duration = p.partial_length()
     self.outputter = self.bar_manager.pass_time(-duration)
@@ -162,6 +165,7 @@ class LilypondMusic:
   def music_list(self,m,_=None):
     handlers = {
       ly.music.items.Note: self.note, 
+      ly.music.items.Tie: self.tie,
       ly.music.items.Rest: self.rest,
       ly.music.items.TimeSignature: self.time_signature,
       ly.music.items.KeySignature: self.key_signature,

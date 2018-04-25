@@ -35,30 +35,19 @@ CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | """))
 
     with it('prints only one barline where there is a repeat'):
       output_c_major_snippet("4/4","\\repeat volta 2 { c4 d e f c d e f }",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
- |: C2D2 E2F2 | C2D2 E2F2 :| """))
+      expect(self.output.all_output()).to(contain("|: C2D2 E2F2 | C2D2 E2F2 :|"))
 
     with it('handles manually-specified barlines'):
       output_c_major_snippet("2/2","c4 d \\bar \"||\" e f \\bar \"|.\" }",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 2/2
-L: 1/4
-CD || EF |] """))
+      expect(self.output.all_output()).to(contain("CD || EF |]"))
 
     with it('handles \\partial'):
       output_c_major_snippet("4/4","\\partial 4 d4 | c d e f",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
-D2 | C2D2 E2F2 | """))
+      expect(self.output.all_output()).to(contain("D2 | C2D2 E2F2 |"))
 
     with it('handles \\ppMark'):
       output_c_major_snippet("2/2","\\ppMark c4 d e f  \\ppMark g e d c",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 2/2
-L: 1/4
+      expect(self.output.all_output()).to(contain("""
 P: A
 CD EF | 
 P: B
@@ -66,9 +55,7 @@ GE DC | """))
 
     with it('handles \\ppMark correctly before a repeat'):
       output_c_major_snippet("2/2","\\ppMark { c4 d e f f1 \\ppMark \\repeat volta 2 { g4 e d c  f e d c }",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 2/2
-L: 1/4
+      expect(self.output.all_output()).to(contain("""
 P: A
 CD EF | F4 |: 
 P: B
@@ -76,9 +63,7 @@ GE DC | FE DC :| """))
 
     with it('handles \\ppMarkA by outputting the mark before the note'):
       output_c_major_snippet("2/2","c4^\\ppMarkA d e f  g^\\ppMarkB e d c",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 2/2
-L: 1/4
+      expect(self.output.all_output()).to(contain("""
 P: A
 CD EF | 
 P: B
@@ -86,18 +71,14 @@ GE DC | """))
 
     with it('outputs a repeat marker before a time change'):
       output_c_major_snippet("4/4","c4 d e f \\time 6/8 \\repeat volta 2 { c8 d e f g a }",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
+      expect(self.output.all_output()).to(contain("""
 C2D2 E2F2 |: 
 M: 6/8
 CDE FGA :| """))
 
     with it('outputs a repeat marker before a part change'):
       output_c_major_snippet("4/4","c4^\ppMarkA d e f \\repeat volta 2 { c4^\ppMarkB d e f }",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
+      expect(self.output.all_output()).to(contain("""
 P: A
 C2D2 E2F2 |: 
 P: B
@@ -105,16 +86,11 @@ C2D2 E2F2 :| """))
 
     with it('outputs a repeat marker at the end of the bar'):
       output_c_major_snippet("6/8","\\repeat volta 2 { c8 d e e d c c2. }",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 6/8
-L: 1/8
- |: CDE EDC | C6 :| """))
+      expect(self.output.all_output()).to(contain("|: CDE EDC | C6 :|"))
 
     with it('outputs time signature immediately after a manual bar'):
       output_c_major_snippet("4/4","c4 d e f \\bar \"||\" \\time 6/4 c d e f g a \\time 6/8 a8 g f f g a \\bar \"|.\"",self.output)
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
+      expect(self.output.all_output()).to(contain("""
 C2D2 E2F2 || 
 M: 6/4
 C2D2E2 F2G2A2 | 
@@ -124,31 +100,23 @@ AGF FGA |] """))
     with it('outputs all assigns if none are specified'):
       snippet = ly.music.document(ly.document.Document("global = { \\key c \\major \\time 4/4 } \nfoo = \\relative c' { c1 } \nbar = \\relative c' { d1 }"))
       LilypondMusic(music=snippet,outputter=self.output).output_abc()
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
-C8 | D8 | """))
+      expect(self.output.all_output()).to(contain("C8 | D8 |"))
 
     with it('outputs only the given assigns if some are specified'):
       snippet = ly.music.document(ly.document.Document("global = { \\key c \\major \\time 4/4 } \nfoo = \\relative c' { c1 } \nbar = \\relative c' { d1 }\nbaz = \\relative c' { e1 }"))
       LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
-C8 | E8 | """))
+      expect(self.output.all_output()).to(contain("C8 | E8 |"))
 
     with it('handles transposition'):
       snippet = ly.music.document(ly.document.Document("\\key c \\major \\time 4/4 \\transpose c d \\relative c' { c4 d e f } \\relative c' { f e d c }"))
       LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
-D2E2 ^F2G2 | F2E2 D2C2 | """))
+      expect(self.output.all_output()).to(contain("D2E2 ^F2G2 | F2E2 D2C2 |"))
 
     with it('handles transposition with octave changes in the music'):
       snippet = ly.music.document(ly.document.Document("\\key c \\major \\time 4/4 \\transpose c d \\relative c' { f4 c' }"))
       LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
-      expect(self.output.all_output()).to(equal("""K: C major
-M: 4/4
-L: 1/8
-G2d2 """))
+      expect(self.output.all_output()).to(contain("G2d2"))
+
+    with it('handles tied notes'):
+      output_c_major_snippet("6/8","c4.~ c4 c8",self.output)
+      expect(self.output.all_output()).to(contain("C3- C2C"))
