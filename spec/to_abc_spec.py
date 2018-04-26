@@ -120,3 +120,27 @@ AGF FGA |] """))
     with it('handles tied notes'):
       output_c_major_snippet("6/8","c4.~ c4 c8",self.output)
       expect(self.output.all_output()).to(contain("C3- C2C"))
+
+    with it('handles \mark'):
+      output_c_major_snippet("6/8","\\mark c4. c \\mark c4. c",self.output)
+      expect(self.output.all_output()).to(contain("\"^A\"C3 C3 | \"^B\"C3 C3"))
+
+    with it('handles \mark with argument'):
+      output_c_major_snippet("6/8","\\mark \"X\" c4. c",self.output)
+      expect(self.output.all_output()).to(contain("\"^X\"C3 C3"))
+
+    with it('handles \mark with argument before end repeat'):
+      output_c_major_snippet("6/8","\\repeat volta 2 { c4. c \\mark \"(3)\" } c c",self.output)
+      expect(self.output.all_output()).to(contain("|: C3 C3 \"^(3)\":| C3 C3"))
+
+    with it('handles \mark with argument before open/close repeat'):
+      output_c_major_snippet("6/8","\\repeat volta 2 { c4. c \\mark \"(3)\" } \\repeat volta 2 { c c }",self.output)
+      expect(self.output.all_output()).to(contain("|: C3 C3 \"^(3)\":: C3 C3 :|"))
+
+    with it('handles repeats in a row'):
+      output_c_major_snippet("4/4","\\repeat volta 2 { c2 c } \\repeat volta 2 { c c }",self.output)
+      expect(self.output.all_output()).to(contain("|: C4 C4 :: C4 C4 :|"))
+
+    with it('outputs a final barline'):
+      output_c_major_snippet("4/4","c2 c",self.output)
+      expect(self.output.all_output()).to(contain("C4 C4 |"))

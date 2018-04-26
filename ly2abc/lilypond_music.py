@@ -52,7 +52,6 @@ class LilypondMusic:
     }
     self.traverse(self.music,handlers)
 
-    if self.bar_manager: self.bar_manager.output_breaks()
     self.pass_time()
 
   def time_signature(self,t,_=None):
@@ -78,8 +77,6 @@ class LilypondMusic:
   def transpose(self,node,handlers):
     old_transposer = self.note_context.transposer
     self.note_context.transposer = ly.pitch.transpose.Transposer(node[0].pitch,node[1].pitch)
-#    import pdb
-#    pdb.set_trace()
     for child in node[2:]:
       self.traverse(child,handlers)
     self.note_context.transposer = old_transposer
@@ -123,11 +120,13 @@ class LilypondMusic:
 
   def repeat(self,r,handlers=None):
     if(r.specifier() == 'volta'):
+      self.outputter.markup_to_bar()
       if self.bar_manager.bar_type == ":|": self.bar_manager.bar_type = "::"
       else: self.bar_manager.bar_type = "|:"
 
       self.repeat_count = r.repeat_count()
       for n in r: self.traverse(n,handlers)
+      self.outputter.markup_to_bar()
       self.bar_manager.bar_type = ":|"
     elif(r.specifier() == 'unfold'):
       for i in range(0,r.repeat_count()):
@@ -139,7 +138,7 @@ class LilypondMusic:
     def output_alternative(alt_range,music_list):
       self.outputter.output_volta(" [%s " % alt_range)
       self.traverse(music_list,handlers)
-      self.bar_manager.manual_bar(" :|] ")
+      self.bar_manager.manual_bar(":|]")
 
     for music_list in a:
 
@@ -178,12 +177,17 @@ class LilypondMusic:
     }
 
     self.traverse(m,handlers)
+    
+  def next_mark(self):
+    if not self.section: 
+      self.section = 'A'
+    else:
+      self.section = chr(ord(self.section) + 1)
+    return self.section
 
   def usercommand(self,usercommand,handlers):
     if(usercommand.name() == 'ppMark'):
-      if not self.section: self.section = 'A'
-      self.outputter.output_info_field("P: %s" % self.section)
-      self.section = chr(ord(self.section) + 1)
+      self.outputter.output_info_field("P: %s" % self.next_mark())
     else:
       r = re.match(r'ppMark(\w)',usercommand.name())
       if r: 
@@ -192,29 +196,37 @@ class LilypondMusic:
       self.traverse(usercommand,handlers)
 
   def command(self,m,_=None):
-    if(m.token == "\\bar"):
+    def bar():
       bars = {
-          "|": " | ",
-          "||": " || ",
-          ".|": " [| ",
-          "|.": " |] ",
-          ".|:": " |: ",
-          ":..:": " :: ",
-          ":|.|:": " :: ",
-          ":|.:": " :: ",
-          ":.|.:": " :: ",
-          "[|:":   " |: ",
-          ":|][|:": " :: ",
-          ":|]": " :| ",
-          ":|.": " :| ",
+          "|": "|",
+          "||": "||",
+          ".|": "[|",
+          "|.": "|]",
+          ".|:": "|:",
+          ":..:": "::",
+          ":|.|:": "::",
+          ":|.:": "::",
+          ":.|.:": "::",
+          "[|:":   "|:",
+          ":|][|:": "::",
+          ":|]": ":|",
+          ":|.": ":|",
           }
-      self.bar_manager.manual_bar((bars.get(m.next_sibling().plaintext(),' | ')))
+      self.bar_manager.manual_bar((bars.get(m.next_sibling().plaintext(),'|')))
+
+    def mark():
+      if(isinstance(m.next_sibling(),ly.music.items.String)):
+        thismark = m.next_sibling().plaintext()
+      else:
+        thismark = self.next_mark()
+      self.outputter.output_markup("^%s" % thismark)
+
+    if(m.token == "\\bar"): bar()
+    if(m.token == "\\mark"): mark()
         
   # private
 
   def print_note(self,pitch,duration):
-#    import pdb
-#    pdb.set_trace()
     self.pass_time()
     self.outputter.output_note(Note(pitch,duration,self.note_context).to_abc())
     self.old_duration += duration

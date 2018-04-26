@@ -97,15 +97,13 @@ with description('BarManager') as self:
         bar_manager.pass_time(Fraction(6,8))
         bar_manager.bar_type = ":|"
         bar_manager.pass_time(Fraction(6,8))
-        bar_manager.outputter.all_output()
-        expect(bar_manager.outputter.outputter.items).to(contain(' :| '))
+        expect(bar_manager.outputter.outputter.all_output()).to(contain(' :| '))
 
       with it('outputs | if no barline overrode it'):
         bar_manager = self.bar_manager()
         bar_manager.pass_time(Fraction(6,8))
         bar_manager.pass_time(Fraction(6,8))
-        bar_manager.outputter.all_output()
-        expect(bar_manager.outputter.outputter.items).to(contain(' | '))
+        expect(bar_manager.outputter.outputter.all_output()).to(contain(' | '))
 
   with context('in 4/4 time'):
     def bar_manager(self):

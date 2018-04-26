@@ -77,7 +77,7 @@ class BarManager:
       return
 
     if self.bar_line():
-      self.outputter.output_barline(" %s " % (self.bar_type))
+      self.outputter.output_barline(self.bar_type)
       self.bar_type = "|"
       self.broke = True
     elif self.beam_break():
@@ -86,6 +86,7 @@ class BarManager:
 
   def manual_bar(self,break_str):
     self.broke = True
+    self.outputter.markup_to_bar()
     self.outputter.output_barline(break_str)
 
   def line_break(self):
@@ -95,8 +96,6 @@ class BarManager:
     return self.beats() != 0 and self.beats() % BarManager.beamers[self.numerator] == 0
 
   def bar_line(self):
-#    import pdb
-#    pdb.set_trace()
     rval=(self.bar_type and self.beats() % self.numerator == 0)
     return rval
 

@@ -26,11 +26,19 @@ class OutputBuffer:
   def output_volta(self, text):
     self.volta_bracket = text
 
+  def markup_to_bar(self):
+    """ print markup so far in front of barline, not in front of note """
+    self.barline_markup.extend(self.markup)
+    self.markup = []
+
   def output_barline(self, text):
     self.barline = text
 
   def output_tie(self):
     self.tie = True
+
+  def output_markup(self,text):
+    self.markup.append(text)
 
   def all_output(self):
     return self.reify()
@@ -57,16 +65,25 @@ class OutputBuffer:
       for item in self.info_fields:
         self.__output(item)
         self.__output("\n")
-      if self.barline: self.__output(self.barline)
+      if self.barline: self.__output(" %s " % (self.barline))
+      for item in self.markup:
+        self.__output("\"%s\"" % item)
     else:
       if self.note_output: self.__output(self.note_output)
       if self.tie: self.__output("-")
       if self.beam_break: self.__output(" ")
-      if self.barline: self.__output(self.barline)
+      if self.barline: 
+        self.__output(" ")
+        for item in self.barline_markup:
+          self.__output("\"%s\"" % item)
+        self.__output(self.barline)
+        self.__output(" ")
       if self.line_break: self.__output("\n")
       for item in self.info_fields:
         self.__output(item)
         self.__output("\n")
+      for item in self.markup:
+        self.__output("\"%s\"" % item)
 
     if self.volta_bracket: self.__output(self.volta_bracket)
 
@@ -80,6 +97,8 @@ class OutputBuffer:
     self.barline = None
     self.volta_bracket = None
     self.tie = None
+    self.markup = []
+    self.barline_markup = []
 
   def __output(self, stuff):
     self.outputter.output(stuff)

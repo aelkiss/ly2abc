@@ -236,8 +236,7 @@ with description('LilypondMusic') as self:
           self.l.ouputter = self.l.bar_manager.pass_time(1)
           self.l.command(LyCommand("\\bar",siblings=[LyString('||')]))
           self.l.pass_time()
-          self.output.reify()
-          expect(self.output.outputter.items[-1]).to(equal(" || "))
+          expect(self.output.outputter.all_output()).to(end_with(" || "))
 
         with it('prints barlines in the middle of a measure'):
           self.l.ouputter = self.l.bar_manager.pass_time(1/4)
@@ -296,14 +295,14 @@ with description('LilypondMusic') as self:
             self.output.reify()
 
           with it('first outputs an opening repeat'):
-            expect(self.output.outputter.items).to(contain(' |: '))
+            expect(self.output.outputter.all_output()).to(contain(' |: '))
 
           with it('traverses inner music with the given handlers'):
             expect(self.output.outputter.items).to(contain('some'))
             expect(self.output.outputter.items).to(contain('thing'))
 
           with it('outputs a closing repeat'):
-            expect(self.output.outputter.items).to(contain(' :| '))
+            expect(self.output.outputter.all_output()).to(contain(' :| '))
 
         with context('with an unfolded repeat'):
           with before.each:
