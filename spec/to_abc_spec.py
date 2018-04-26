@@ -47,27 +47,15 @@ CDEF FEDC | CDEF FEDC | CDEF FEDC | CDEF FEDC | """))
 
     with it('handles \\ppMark'):
       output_c_major_snippet("2/2","\\ppMark c4 d e f  \\ppMark g e d c",self.output)
-      expect(self.output.all_output()).to(contain("""
-P: A
-CD EF | 
-P: B
-GE DC | """))
+      expect(self.output.all_output()).to(contain("\"^A\"CD EF | \"^B\"GE DC |"))
 
     with it('handles \\ppMark correctly before a repeat'):
       output_c_major_snippet("2/2","\\ppMark { c4 d e f f1 \\ppMark \\repeat volta 2 { g4 e d c  f e d c }",self.output)
-      expect(self.output.all_output()).to(contain("""
-P: A
-CD EF | F4 |: 
-P: B
-GE DC | FE DC :| """))
+      expect(self.output.all_output()).to(contain("\"^A\"CD EF | F4 \"^B\"|: GE DC | FE DC :|"))
 
     with it('handles \\ppMarkA by outputting the mark before the note'):
       output_c_major_snippet("2/2","c4^\\ppMarkA d e f  g^\\ppMarkB e d c",self.output)
-      expect(self.output.all_output()).to(contain("""
-P: A
-CD EF | 
-P: B
-GE DC | """))
+      expect(self.output.all_output()).to(contain("\"^A\"CD EF | \"^B\"GE DC |"))
 
     with it('outputs a repeat marker before a time change'):
       output_c_major_snippet("4/4","c4 d e f \\time 6/8 \\repeat volta 2 { c8 d e f g a }",self.output)
@@ -78,11 +66,7 @@ CDE FGA :| """))
 
     with it('outputs a repeat marker before a part change'):
       output_c_major_snippet("4/4","c4^\ppMarkA d e f \\repeat volta 2 { c4^\ppMarkB d e f }",self.output)
-      expect(self.output.all_output()).to(contain("""
-P: A
-C2D2 E2F2 |: 
-P: B
-C2D2 E2F2 :| """))
+      expect(self.output.all_output()).to(contain("\"^A\"C2D2 E2F2 |: \"^B\"C2D2 E2F2 :|"))
 
     with it('outputs a repeat marker at the end of the bar'):
       output_c_major_snippet("6/8","\\repeat volta 2 { c8 d e e d c c2. }",self.output)

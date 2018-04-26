@@ -191,11 +191,11 @@ class LilypondMusic:
 
   def usercommand(self,usercommand,handlers):
     if(usercommand.name() == 'ppMark'):
-      self.outputter.output_info_field("P: %s" % self.next_mark())
+      self.outputter.output_markup("^%s" % self.next_mark())
     else:
       r = re.match(r'ppMark(\w)',usercommand.name())
       if r: 
-        self.outputter.previous.output_info_field("P: %s" % r.group(1))
+        self.outputter.previous.output_markup("^%s" % r.group(1))
     for n in usercommand:
       self.traverse(usercommand,handlers)
 

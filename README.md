@@ -10,7 +10,7 @@ LilyPond for the following features of the ABC specification:
 
 * Chords
 * Tuplets
-* Annotations
+* Annotations other than markup above the node
 * Modes besides major, minor, dorian, mixolydian
 * Double accidentals
 * Decorations
@@ -41,8 +41,3 @@ BUGS
 
 internal \partial not handled well
 missing closing repeat on tamrett, ly bens
-
-IMMEDIATE TODO
-
-handle drone specified as markup
-handle (3) specified as markup
