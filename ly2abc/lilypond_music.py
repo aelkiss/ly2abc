@@ -161,6 +161,9 @@ class LilypondMusic:
 
     self.repeat_count = None
 
+  def markup(self,node,_=None):
+    self.outputter.previous.output_markup("^" + node.plaintext())
+
   def music_list(self,m,_=None):
     handlers = {
       ly.music.items.Note: self.note, 
@@ -174,6 +177,7 @@ class LilypondMusic:
       ly.music.items.UserCommand: self.usercommand,
       ly.music.items.Partial: self.partial,
       ly.music.items.Transpose: self.transpose,
+      ly.music.items.Markup: self.markup,
     }
 
     self.traverse(m,handlers)

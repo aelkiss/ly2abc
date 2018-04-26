@@ -144,3 +144,7 @@ AGF FGA |] """))
     with it('outputs a final barline'):
       output_c_major_snippet("4/4","c2 c",self.output)
       expect(self.output.all_output()).to(contain("C4 C4 |"))
+
+    with it('handles postfix markup'):
+      output_c_major_snippet("4/4","c2^\\markup{some text} c2",self.output)
+      expect(self.output.all_output()).to(contain("\"^some text\"C4 C4 | "))

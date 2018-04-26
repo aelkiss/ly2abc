@@ -8,11 +8,9 @@ Usage:
 This is heavily a work in progress. It does not yet handle conversion from
 LilyPond for the following features of the ABC specification:
 
-* Section markers via \mark
 * Chords
 * Tuplets
 * Annotations
-** (for fakebook, should handle the idiosyncratic multiple-repeat markup)
 * Modes besides major, minor, dorian, mixolydian
 * Double accidentals
 * Decorations
@@ -20,7 +18,7 @@ LilyPond for the following features of the ABC specification:
 * Clefs other than treble clef
 * Multi-measure rests
 * Modified or explicit key signatures
-* Suggested drone (from ppile markup)
+* Suggested drone (from ppile markup) --> include via %%text in the same place as midi directives?
 
 No support is planned for:
 
@@ -43,3 +41,8 @@ BUGS
 
 internal \partial not handled well
 missing closing repeat on tamrett, ly bens
+
+IMMEDIATE TODO
+
+handle drone specified as markup
+handle (3) specified as markup
