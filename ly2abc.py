@@ -25,7 +25,8 @@ header_fields = {
     'composer': 'C',
     'meter': 'P',
     'tagline': 'N',
-    'piece': 'N'
+    'piece': 'N',
+    'copyright': 'N'
 }
 
 # def tempo:
@@ -50,7 +51,7 @@ if __name__ == "__main__":
         print(f"{abc_field}: {a.value().plaintext()}")
 
     outputter = OutputBuffer(FilehandleOutputter(sys.stdout))
-    l = LilypondMusic(m,outputter,output_assigns=['global','ppMusicOne'])
+    l = LilypondMusic(m,outputter,output_assigns=['global','ppMusicOne','ppChordLine'])
     l.output_abc()
     # XXX fixme
     outputter.reify()

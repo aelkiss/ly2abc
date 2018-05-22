@@ -31,13 +31,30 @@ On the LilyPond side, it does not support:
 * Explicit beaming
 * Explicit line breaks
 * Any feature of LilyPond that isn't supported by ABC
+* Unfolded repeats inside \chordmode (volta repeats should be OK so long as they match what's in the primary melody line)
+* Transposed \chordmode
 
 To make overrideable:
 
 * Unit length
 * Beaming strategy
 
+
+TODO
+
+%%ambitus
+
 BUGS
 
-internal \partial not handled well
-missing closing repeat on tamrett, ly bens
+internal \partial not handled well (Won't fix)
+accidentals get printed multiple times in a given measure (see e.g. bassa toscana)
+ending barlines / repeats not on a measure offset
+G\_8 clefs for melody not handled
+
+Notes for chord mode
+- if we advanced an output buffer and the elapsed time exceeds the duration of the chord... then we need to split output buffers. Can ABC handle chord changes that happen in the middle of a note?
+
+TODO:
+- handle accidentals, transposition, chord modifiers
+  - chordnote - look for following ChordSpecifier, output ChordItems (except ':') as-is
+- better handle case if chord changes happen in the middle of a note

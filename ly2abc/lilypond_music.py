@@ -31,6 +31,7 @@ class LilypondMusic:
     self.music = music
     self.section = None
     self.note_buffer = []
+    self.chords = []
     self.old_duration = 0
     self.output_assigns = output_assigns
 
@@ -47,12 +48,29 @@ class LilypondMusic:
       ly.music.items.TimeSignature: self.time_signature,
       ly.music.items.KeySignature: self.key_signature,
       ly.music.items.Relative: self.relative,
+      ly.music.items.ChordMode: self.chord_mode,
       ly.music.items.Assignment: self.assign,
       ly.music.items.Transpose: self.transpose,
     }
     self.traverse(self.music,handlers)
 
     self.pass_time()
+    self.interpolate_chords()
+
+  def interpolate_chords(self):
+    buffers = self.outputter.outputter.buffers
+    buffer_index = 0
+    while buffers[buffer_index].duration == 0:
+      buffer_index += 1
+
+    for (chord,duration) in self.chords:
+      if chord: buffers[buffer_index].output_chord(chord)
+      passed_time = 0
+      while(passed_time < duration):
+        passed_time += buffers[buffer_index].duration
+        buffer_index += 1
+      if passed_time != duration:
+        print("WARNING: passed time %s doesn't match duration %s - chord change in middle of note?" % (passed_time,duration))
 
   def time_signature(self,t,_=None):
     numerator = t.numerator()
@@ -81,6 +99,22 @@ class LilypondMusic:
       self.traverse(child,handlers)
     self.note_context.transposer = old_transposer
 
+  def chord_mode(self,node,_=None):
+    handlers = {
+      ly.music.items.Note: self.chord_note,
+      ly.music.items.Skip: self.chord_skip
+    }
+
+    self.traverse(node,handlers)
+
+  def chord_note(self,n,_=None):
+    # TODO: tranpose
+    pitch = n.pitch.copy()
+    self.chords.append((pitch.output().upper(),n.length()))
+
+  def chord_skip(self,s,_=None):
+    self.chords.append([None,s.length()])
+
   def assign(self,node,handlers):
     if self.output_assigns == None or node.name() in self.output_assigns:
       for child in node:
@@ -104,7 +138,6 @@ class LilypondMusic:
     pitch.makeAbsolute(self.last_pitch)
     self.last_pitch = pitch.copy()
     self.note_context.transposer.transpose(pitch)
-    # check for postfix
     self.print_note(pitch,duration)
 
   def tie(self,n,_=None):
@@ -232,7 +265,7 @@ class LilypondMusic:
 
   def print_note(self,pitch,duration):
     self.pass_time()
-    self.outputter.output_note(Note(pitch,duration,self.note_context).to_abc())
+    self.outputter.output_note(Note(pitch,duration,self.note_context).to_abc(),duration)
     self.old_duration += duration
 
   def default_unit_length(self,numerator,denominator):

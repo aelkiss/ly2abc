@@ -46,17 +46,21 @@ class OutputBuffer:
   def reify(self):
     return self.outputter.reify()
 
+  def output_chord(self,chord):
+    self.chord = chord
+
   def output_line_break(self):
     self.line_break = True
 
   def output_beam_break(self):
     self.beam_break = True
 
-  def output_note(self,item):
+  def output_note(self,item,duration):
     if self.note_output:
       raise RuntimeError("called OutputBuffer#output_note a second time before flushing (passed '%s', was '%s')" % (item, self.note_output))
     else:
       self.note_output = item
+      self.duration = duration
 
   def print_buffer(self):
 #    import pdb
@@ -69,6 +73,7 @@ class OutputBuffer:
       for item in self.markup:
         self.__output("\"%s\"" % item)
     else:
+      if self.chord: self.__output("\"%s\"" % self.chord)
       if self.note_output: self.__output(self.note_output)
       if self.tie: self.__output("-")
       if self.beam_break: self.__output(" ")
@@ -99,6 +104,8 @@ class OutputBuffer:
     self.tie = None
     self.markup = []
     self.barline_markup = []
+    self.duration = 0
+    self.chord = None
 
   def __output(self, stuff):
     self.outputter.output(stuff)
