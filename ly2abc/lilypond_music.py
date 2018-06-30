@@ -102,15 +102,39 @@ class LilypondMusic:
   def chord_mode(self,node,_=None):
     handlers = {
       ly.music.items.Note: self.chord_note,
-      ly.music.items.Skip: self.chord_skip
+      ly.music.items.Skip: self.chord_skip,
+      ly.music.items.ChordSpecifier: self.chord_specifier
     }
 
     self.traverse(node,handlers)
 
   def chord_note(self,n,_=None):
-    # TODO: tranpose
     pitch = n.pitch.copy()
-    self.chords.append((pitch.output().upper(),n.length()))
+    self.note_context.transposer.transpose(pitch)
+    pitch_map = {
+      '': '',
+      'is': '#',
+      'es': 'b',
+      's': '#',
+      'f': 'b'
+    }
+    # need to map pitch to abc chord name - use both nl and english names
+    pitchname = pitch.output()
+    notename = pitchname[0].upper()
+    modifier = pitch_map[pitchname[1:]]
+    self.chords.append((notename+modifier,n.length()))
+
+  def chord_specifier(self,n,_=None):
+    handlers = {
+      ly.music.items.ChordItem: self.chord_item
+    }
+
+    self.traverse(n,handlers)
+
+  def chord_item(self,item,_=None):
+    if(item.token != ':'):
+      (chord,length) = self.chords[-1]
+      self.chords[-1] = (chord + item.token, length)
 
   def chord_skip(self,s,_=None):
     self.chords.append([None,s.length()])
