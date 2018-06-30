@@ -154,3 +154,19 @@ AGF FGA |] """))
       LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
       expect(self.output.all_output()).to(contain("\"D\"D4 E4 | \"A\"^F4 G4"))
 
+    with it('handles repeats not on a barline'):
+      output_snippet("4/4","\\repeat volta 2 { \\partial 4 c4 d e f } g a b c d",self.output)
+      expect(self.output.all_output()).to(contain("|: C2 | D2E2 F2 :| G2 | A2B2 c2d2"))
+
+
+    with it('handles first and second endings'):
+      output_snippet("4/4","\\repeat volta 2 { c1 } \\alternative { { d1 } { e1 } }", self.output)
+      expect(self.output.all_output()).to(contain("[1 D8 :|]  [2 E8"))
+
+    with it('handles > 2 alternative endings'):
+      output_snippet("4/4","\\repeat volta 3 { c1 } \\alternative { { d1 } { e1 } { f1 } }", self.output)
+      expect(self.output.all_output()).to(contain("|: C8 |  [1 D8 :|]  [2 E8 :|]  [3 F8 "))
+
+    with it("in a \\repeat volta 3, prints endings 1-2 on the first alternative"):
+      output_snippet("4/4","\\repeat volta 3 { c1 } \\alternative { { d1 } { e1 } }", self.output)
+      expect(self.output.all_output()).to(contain("|: C8 |  [1-2 D8 :|]  [3 E8 "))

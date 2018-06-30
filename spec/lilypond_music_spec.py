@@ -266,18 +266,6 @@ with description('LilypondMusic') as self:
           with it('passes time equaling the length of the rest'):
             expect(self.l.bar_manager.elapsed_time).to(equal(Fraction(1/8)))
 
-      with description('alternative'):
-        with it("prints the first and second endings"):
-          self.l.music_list(ly_snippet("{ \\repeat volta 2 { c1 } \\alternative { { d1 } { e1 } } }"))
-          self.l.pass_time()
-          expect(self.output.all_output()).to(contain("[1 D8 :|]  [2 E8"))
-
-        with it("in a \\repeat volta 3, prints endings 1-2 on the first alternative"):
-          self.l.music_list(ly_snippet("{ \\repeat volta 3 { c1 } \\alternative { { d1 } { e1 } } }"))
-          self.l.pass_time()
-          expect(self.output.all_output()).to(contain("|: C8 |  [1-2 D8 :|]  [3 E8 "))
-          
-
       with description('repeat'):
 
         def handlers(self):

@@ -47,9 +47,8 @@ TODO
 BUGS
 
 internal \partial not handled well (Won't fix)
-accidentals get printed multiple times in a given measure (see e.g. bassa toscana)
-** ending barlines / repeats not on a measure offset
-G\_8 clefs for melody not handled
+**accidentals get printed multiple times in a given measure (see e.g. bassa toscana)
+**G\_8 clefs for melody not handled
 
 Notes for chord mode
 - if we advanced an output buffer and the elapsed time exceeds the duration of the chord... then we need to split output buffers. Can ABC handle chord changes that happen in the middle of a note?

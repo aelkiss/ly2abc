@@ -37,14 +37,14 @@ class LilypondMusic:
 
   def traverse(self,node,handlers,i=0):
     method = handlers.get(type(node))
-    if method: 
+    if method:
       method(node,handlers)
     else:
       for child in node:
         self.traverse(child,handlers)
 
   def output_abc(self):
-    handlers = { 
+    handlers = {
       ly.music.items.TimeSignature: self.time_signature,
       ly.music.items.KeySignature: self.key_signature,
       ly.music.items.Relative: self.relative,
@@ -178,19 +178,21 @@ class LilypondMusic:
   def repeat(self,r,handlers=None):
     if(r.specifier() == 'volta'):
       self.outputter.markup_to_bar()
-      if self.bar_manager.bar_type == ":|": self.bar_manager.bar_type = "::"
-      else: self.bar_manager.bar_type = "|:"
+      if self.outputter.barline == ":|":
+        self.bar_manager.manual_bar("::")
+      else:
+        self.bar_manager.manual_bar("|:")
 
       self.repeat_count = r.repeat_count()
       for n in r: self.traverse(n,handlers)
       self.outputter.markup_to_bar()
-      self.bar_manager.bar_type = ":|"
+      self.bar_manager.manual_bar(":|")
     elif(r.specifier() == 'unfold'):
       for i in range(0,r.repeat_count()):
         for n in r: self.traverse(n,handlers)
     else:
       sys.stsderr.write("WARNING: Ignoring unhandled repeat specifier %s\n" % r.specifier())
-      
+
   def alternative(self,a,handlers={}):
     def output_alternative(alt_range,music_list):
       self.outputter.output_volta(" [%s " % alt_range)
@@ -198,7 +200,6 @@ class LilypondMusic:
       self.bar_manager.manual_bar(":|]")
 
     for music_list in a:
-
       alt_range = "1"
       if self.repeat_count > len(music_list):
         alt_range = "1-%d" % (self.repeat_count - len(music_list) + 1)
@@ -206,10 +207,10 @@ class LilypondMusic:
 
       alternative = self.repeat_count - len(music_list) + 2
 
-#      if len(music_list) > 3:
-#        for ending in music_list[1:-1]:
-#          output_alternative(str(alternative),ending())
-#          alternative += 1
+      if len(music_list) >= 3:
+        for ending in music_list[1:-1]:
+          output_alternative(str(alternative),ending)
+          alternative += 1
 
       if len(music_list) >= 2:
         # last ending - would be rather odd not to have this
@@ -223,7 +224,7 @@ class LilypondMusic:
 
   def music_list(self,m,_=None):
     handlers = {
-      ly.music.items.Note: self.note, 
+      ly.music.items.Note: self.note,
       ly.music.items.Tie: self.tie,
       ly.music.items.Rest: self.rest,
       ly.music.items.TimeSignature: self.time_signature,
@@ -238,9 +239,9 @@ class LilypondMusic:
     }
 
     self.traverse(m,handlers)
-    
+
   def next_mark(self):
-    if not self.section: 
+    if not self.section:
       self.section = 'A'
     else:
       self.section = chr(ord(self.section) + 1)
@@ -251,7 +252,7 @@ class LilypondMusic:
       self.outputter.output_markup("^%s" % self.next_mark())
     else:
       r = re.match(r'ppMark(\w)',usercommand.name())
-      if r: 
+      if r:
         self.outputter.previous.output_markup("^%s" % r.group(1))
     for n in usercommand:
       self.traverse(usercommand,handlers)
@@ -284,7 +285,7 @@ class LilypondMusic:
 
     if(m.token == "\\bar"): bar()
     if(m.token == "\\mark"): mark()
-        
+
   # private
 
   def print_note(self,pitch,duration):
