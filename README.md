@@ -8,7 +8,6 @@ Usage:
 This is heavily a work in progress. It does not yet handle conversion from
 LilyPond for the following features of the ABC specification:
 
-* Chords
 * Tuplets
 * Annotations other than markup above the node
 * Modes besides major, minor, dorian, mixolydian
@@ -27,7 +26,6 @@ No support is planned for:
 
 On the LilyPond side, it does not support:
 
-* Volta repeats that are not on a barline boundary
 * Explicit beaming
 * Explicit line breaks
 * Any feature of LilyPond that isn't supported by ABC
@@ -47,7 +45,6 @@ TODO
 BUGS
 
 internal \partial not handled well (Won't fix)
-**accidentals get printed multiple times in a given measure (see e.g. bassa toscana)
 **G\_8 clefs for melody not handled
 
 Notes for chord mode

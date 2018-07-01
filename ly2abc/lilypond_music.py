@@ -77,7 +77,7 @@ class LilypondMusic:
     denominator = t.fraction().denominator
 
     if self.unit_length == None:
-      self.bar_manager = BarManager(numerator,denominator,self.outputter)
+      self.bar_manager = BarManager(numerator,denominator,self.outputter,self.note_context)
       self.unit_length = self.default_unit_length(numerator,denominator)
       self.outputter.output_info_field("M: %s" % self.bar_manager.time_signature())
       self.outputter.output_info_field("L: %s" % self.unit_length)
@@ -122,6 +122,7 @@ class LilypondMusic:
     pitchname = pitch.output()
     notename = pitchname[0].upper()
     modifier = pitch_map[pitchname[1:]]
+    if pitchname == 'es': modifier = 'b'
     self.chords.append((notename+modifier,n.length()))
 
   def chord_specifier(self,n,_=None):

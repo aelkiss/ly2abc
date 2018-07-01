@@ -1,3 +1,5 @@
+from ly2abc.note import NoteContext
+
 class NoneOutputter:
   def output(self,text):
     pass
@@ -31,12 +33,13 @@ class BarManager:
       9:  3
   }
       
-  def __init__(self,numerator,denominator,outputter=NoneOutputter()):
+  def __init__(self,numerator,denominator,outputter=NoneOutputter(),note_context=NoteContext()):
     self.elapsed_time = 0
     self.at_beginning = True
     self.denominator = denominator
     self.numerator = numerator
     self.outputter = outputter
+    self.note_context = note_context
     # don't output a barline at the start of the piece
     self.bar_type = None
     self.new_time_signature = None
@@ -78,6 +81,7 @@ class BarManager:
 
     if self.bar_line():
       self.outputter.output_barline(self.bar_type)
+      self.note_context.reset_accidentals()
       self.bar_type = "|"
       self.broke = True
     elif self.beam_break():
@@ -88,6 +92,7 @@ class BarManager:
     self.broke = True
     self.outputter.markup_to_bar()
     self.outputter.output_barline(break_str)
+    self.note_context.reset_accidentals()
 
   def line_break(self):
     return self.beats() != 0 and self.measures() % 6 == 0

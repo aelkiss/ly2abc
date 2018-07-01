@@ -146,8 +146,8 @@ AGF FGA |] """))
       expect(self.output.all_output()).to(contain("\"Cm\"C4 D4 | \"G7\"E4 F4 | \"Dsus4\"G4 A4"))
 
     with it('handles chord mode with sharps/flats'):
-      output_chord_snippet("4/4","c2 d2 e2 f2","fis1:m bes1",self.output)
-      expect(self.output.all_output()).to(contain("\"F#m\"C4 D4 | \"Bb\"E4 F4"))
+      output_chord_snippet("4/4","c2 d2 e2 f2","fis1:m ees1",self.output)
+      expect(self.output.all_output()).to(contain("\"F#m\"C4 D4 | \"Eb\"E4 F4"))
 
     with it('handles transposed chord mode'):
       snippet = ly.music.document(ly.document.Document("\\key c \\major \\time 4/4 \\transpose c d \\relative c' { c2 d e f } \\transpose c d \\chordmode { c1 g1 }"))
@@ -170,3 +170,7 @@ AGF FGA |] """))
     with it("in a \\repeat volta 3, prints endings 1-2 on the first alternative"):
       output_snippet("4/4","\\repeat volta 3 { c1 } \\alternative { { d1 } { e1 } }", self.output)
       expect(self.output.all_output()).to(contain("|: C8 |  [1-2 D8 :|]  [3 E8 "))
+
+    with it("only prints an accidental one per measure"):
+      output_snippet("4/4","fis4 fis f fis | fis fis es es | es e", self.output)
+      expect(self.output.all_output()).to(contain("^F2F2 =F2^F2 | ^F2F2 _E2E2 | _E2=E2"))

@@ -14,6 +14,11 @@ class NoteContext:
     self.sharps = sharps
     self.unit_length = unit_length
     self.transposer = IdentityTransposer()
+    self.alterations = {}
+
+  def reset_accidentals(self):
+    self.alterations = {}
+  
 
 class Key:
   alters = { flat: "b",
@@ -87,8 +92,10 @@ class Note:
 
   def accidental(self):
     # determine normal disposition of note in the mode
-    normal = self.key_alter()
+    current_alteration = self.context.alterations.get(self.pitch.note,0)
+    normal = (current_alteration or self.key_alter())
     alter = self.pitch.alter
+    self.context.alterations[self.pitch.note] = alter
 
     # is this one altered?
     if normal == natural: return self.natural_alters[alter]
