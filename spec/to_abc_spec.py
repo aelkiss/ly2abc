@@ -182,3 +182,8 @@ AGF FGA |] """))
     with it("only prints an accidental one per measure"):
       output_snippet("4/4","fis4 fis f fis | fis fis es es | es e", self.output)
       expect(self.output.all_output()).to(contain("^F2F2 =F2^F2 | ^F2F2 _E2E2 | _E2=E2"))
+
+    with it('handles opening repeats before key/time signature'):
+      snippet = ly.music.document(ly.document.Document("{ \\repeat volta 2 { \\key c \\major \\time 4/4 c'2 d' e' f' } }"))
+      LilypondMusic(music=snippet,outputter=self.output).output_abc()
+      expect(self.output.all_output()).to(contain("|: C4 D4 | E4 F4 :|"))

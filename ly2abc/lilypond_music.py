@@ -35,6 +35,7 @@ class LilypondMusic:
     self.chords = []
     self.old_duration = 0
     self.output_assigns = output_assigns
+    self.bar_manager = BarManager(4,4,self.outputter,self.note_context)
 
   def traverse(self,node,handlers,i=0):
     method = handlers.get(type(node))
