@@ -28,6 +28,7 @@ class LilypondMusic:
     self.outputter = outputter
     self.note_context = NoteContext()
     self.unit_length = None
+    self.relative_mode = False
     self.music = music
     self.section = None
     self.note_buffer = []
@@ -51,6 +52,7 @@ class LilypondMusic:
       ly.music.items.ChordMode: self.chord_mode,
       ly.music.items.Assignment: self.assign,
       ly.music.items.Transpose: self.transpose,
+      ly.music.items.MusicList: self.music_list,
     }
     self.traverse(self.music,handlers)
 
@@ -120,6 +122,7 @@ class LilypondMusic:
     }
     # need to map pitch to abc chord name - use both nl and english names
     pitchname = pitch.output()
+    pitchname = re.sub(r"[,']",'',pitchname)
     notename = pitchname[0].upper()
     modifier = pitch_map[pitchname[1:]]
     if pitchname == 'es': modifier = 'b'
@@ -155,13 +158,17 @@ class LilypondMusic:
       ly.music.items.Transpose: self.transpose,
     }
 
+    self.relative_mode = True
     self.traverse(r,handlers)
+    self.relative_mode = False
+    
 
   def note(self,n,_=None):
     duration = n.length()
     pitch = n.pitch.copy()
-    pitch.makeAbsolute(self.last_pitch)
-    self.last_pitch = pitch.copy()
+    if self.relative_mode: 
+      pitch.makeAbsolute(self.last_pitch)
+      self.last_pitch = pitch.copy()
     self.note_context.transposer.transpose(pitch)
     self.print_note(pitch,duration)
 
@@ -237,6 +244,8 @@ class LilypondMusic:
       ly.music.items.Partial: self.partial,
       ly.music.items.Transpose: self.transpose,
       ly.music.items.Markup: self.markup,
+      ly.music.items.Relative: self.relative,
+      ly.music.items.ChordMode: self.chord_mode,
     }
 
     self.traverse(m,handlers)
@@ -274,6 +283,9 @@ class LilypondMusic:
           ":|][|:": "::",
           ":|]": ":|",
           ":|.": ":|",
+          ":|": ":|",
+          "|:": "|:",
+          ":|:": "::",
           }
       self.bar_manager.manual_bar((bars.get(m.next_sibling().plaintext(),'|')))
 

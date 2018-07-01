@@ -150,14 +150,18 @@ AGF FGA |] """))
       expect(self.output.all_output()).to(contain("\"F#m\"C4 D4 | \"Eb\"E4 F4"))
 
     with it('handles transposed chord mode'):
-      snippet = ly.music.document(ly.document.Document("\\key c \\major \\time 4/4 \\transpose c d \\relative c' { c2 d e f } \\transpose c d \\chordmode { c1 g1 }"))
+      snippet = ly.music.document(ly.document.Document("\\key c \\major \\time 4/4 \\transpose c d \\relative c' { c2 d e f } \\transpose f c' \\chordmode { c1 g1 }"))
       LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
-      expect(self.output.all_output()).to(contain("\"D\"D4 E4 | \"A\"^F4 G4"))
+      expect(self.output.all_output()).to(contain("\"G\"D4 E4 | \"D\"^F4 G4"))
+
+    with it('handles absolute note entry'):
+      snippet = ly.music.document(ly.document.Document("{ \\key c \\major \\time 4/4 c'2 d' e' f' }"))
+      LilypondMusic(music=snippet,outputter=self.output).output_abc()
+      expect(self.output.all_output()).to(contain("C4 D4 | E4 F4"))
 
     with it('handles repeats not on a barline'):
       output_snippet("4/4","\\repeat volta 2 { \\partial 4 c4 d e f } g a b c d",self.output)
       expect(self.output.all_output()).to(contain("|: C2 | D2E2 F2 :| G2 | A2B2 c2d2"))
-
 
     with it('handles first and second endings'):
       output_snippet("4/4","\\repeat volta 2 { c1 } \\alternative { { d1 } { e1 } }", self.output)

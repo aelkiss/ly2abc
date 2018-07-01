@@ -190,6 +190,7 @@ with description('LilypondMusic') as self:
     with description('note'):
       with context('with a quarter note E above middle C'):
         with before.each:
+          self.l.relative_mode = True
           self.ly_note = LyNote(Pitch.e,Fraction(1/4))
           self.l.note(self.ly_note)
           self.l.pass_time()
@@ -309,6 +310,7 @@ with description('LilypondMusic') as self:
             self.l.outputter.output_test(string)
           handlers = { str: lambda x,_: str_handler(x,None) }
 
+          self.l.relative_mode = True
           self.l.music_list(ly_snippet("{ \\repeat volta 2 { c2 c } \\repeat volta 2 { c2 c } }"))
           self.l.pass_time()
           expect(self.output.all_output()).to(contain('|: C4 C4 :: C4 C4 :|'))
