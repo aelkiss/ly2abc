@@ -141,6 +141,10 @@ AGF FGA |] """))
       output_chord_snippet("4/4","c2 d2 e2 f2","c1 g1",self.output)
       expect(self.output.all_output()).to(contain("\"C\"C4 D4 | \"G\"E4 F4"))
 
+    with it('handles chord changes in the middle of a note'):
+      output_chord_snippet("4/4","c1 d1","c2 g2 d2 a2",self.output)
+      expect(self.output.all_output()).to(contain("\"C G\"C8 | \"D A\"D8"))
+
     with it('handles chord modifiers'):
       output_chord_snippet("4/4","c2 d2 e2 f2 g2 a2","c1:m g1:7 d1:sus4",self.output)
       expect(self.output.all_output()).to(contain("\"Cm\"C4 D4 | \"G7\"E4 F4 | \"Dsus4\"G4 A4"))

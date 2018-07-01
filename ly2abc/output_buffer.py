@@ -47,7 +47,10 @@ class OutputBuffer:
     return self.outputter.reify()
 
   def output_chord(self,chord):
-    self.chord = chord
+    if self.chord:
+      self.chord += " " + chord
+    else:
+      self.chord = chord
 
   def output_line_break(self):
     self.line_break = True

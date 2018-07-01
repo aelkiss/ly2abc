@@ -45,10 +45,5 @@ TODO
 BUGS
 
 internal \partial not handled well (Won't fix)
-**G\_8 clefs for melody not handled
-
-Notes for chord mode
-- if we advanced an output buffer and the elapsed time exceeds the duration of the chord... then we need to split output buffers. Can ABC handle chord changes that happen in the middle of a note?
-
-TODO:
-- better handle case if chord changes happen in the middle of a note
+*G\_8 clefs for melody not handled*
+handling utf-8 in titles

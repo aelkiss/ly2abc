@@ -61,18 +61,22 @@ class LilypondMusic:
 
   def interpolate_chords(self):
     buffers = self.outputter.outputter.buffers
+    chord_time = 0
+    note_time = 0
     buffer_index = 0
     while buffers[buffer_index].duration == 0:
       buffer_index += 1
 
     for (chord,duration) in self.chords:
       if chord: buffers[buffer_index].output_chord(chord)
-      passed_time = 0
-      while(passed_time < duration):
-        passed_time += buffers[buffer_index].duration
-        buffer_index += 1
-      if passed_time != duration:
-        print("WARNING: passed time %s doesn't match duration %s - chord change in middle of note?" % (passed_time,duration))
+      chord_time += duration
+      while(note_time < chord_time):
+        next_time = buffers[buffer_index].duration
+        if note_time + next_time <= chord_time:
+          note_time += next_time
+          buffer_index += 1
+        else:
+          break
 
   def time_signature(self,t,_=None):
     numerator = t.numerator()
