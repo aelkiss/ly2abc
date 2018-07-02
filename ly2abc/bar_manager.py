@@ -30,7 +30,8 @@ class BarManager:
       6:  3,
       7:  1,
       8:  2,
-      9:  3
+      9:  3,
+      12: 3
   }
       
   def __init__(self,numerator,denominator,outputter=NoneOutputter(),note_context=NoteContext()):

@@ -94,7 +94,8 @@ class LilypondMusic:
       self.bar_manager.set_time_signature(numerator,denominator)
 
   def key_signature(self,k,_=None):
-    key = Key(self.note_context.transposer.transpose(k.pitch()),k.mode())
+    self.note_context.transposer.transpose(k.pitch())
+    key = Key(k.pitch(),k.mode())
     self.note_context.sharps = key.sharps()
     self.outputter.output_info_field("K: %s" % (key.to_abc()))
 

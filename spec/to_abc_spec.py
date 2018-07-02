@@ -101,7 +101,7 @@ AGF FGA |] """))
       expect(self.output.all_output()).to(contain("D2E2 ^F2G2 | F2E2 D2C2 |"))
 
     with it('can transpose bf with an f -> g transposer'):
-      snippet = ly.music.document(ly.document.Document("\\transpose f g \\relative c' { \\key c \\major \\time 4/4 bf4 c d e}"))
+      snippet = ly.music.document(ly.document.Document("\\transpose f g \\relative c' { \\key c \\major \\time 4/4 bes4 c d e}"))
       LilypondMusic(music=snippet,outputter=self.output,output_assigns=['global','foo','baz']).output_abc()
       expect(self.output.all_output()).to(contain("C2D2 E2F2"))
 
